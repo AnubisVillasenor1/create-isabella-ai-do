@@ -83,7 +83,8 @@ export async function POST(request: Request) {
 
   return jsonResponse({
     result,
-    settlementExecuted: true,
+    accrualRecorded: true,
+    settlementExecuted: false,
     fundsMoved: false,
     note: "Se registró un devengo contable. Esto no inicia transferencia, payout ni cumplimiento fiscal.",
   }, 201);
