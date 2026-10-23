@@ -217,3 +217,18 @@ Para conectar herramientas de Hugging Face a un agente de desarrollo compatible,
 
 ### Verificación
 Se añadió el workflow `.github/workflows/ci.yml` para ejecutar instalación congelada, typecheck, lint y build. El estado debe verificarse en Actions; el código registrado no equivale a un build exitoso ni a un despliegue validado.
+
+
+### Inferencia local sin créditos de proveedor: Ollama
+
+Para ejecutar modelos de pesos abiertos en infraestructura propia, configura Ollama y descarga el modelo que soporte tu hardware. Ejemplo de desarrollo local:
+
+```bash
+ollama pull qwen3:8b
+ollama serve
+pnpm dev
+```
+
+Configura opcionalmente `OLLAMA_BASE_URL` y `OLLAMA_MODEL` en el servidor. La app añade `GET /api/ollama/models` para enumerar los modelos instalados y el selector **Ollama local** para usarlos en el chat. Esta ruta consulta Ollama desde el servidor Next.js: en Vercel, `127.0.0.1` es el contenedor de Vercel, no el ordenador del usuario. Para despliegues remotos, utiliza un endpoint privado y alcanzable, con autenticación de red y controles de acceso. No expongas el puerto de Ollama directamente a Internet.
+
+El cómputo local evita créditos por inferencia de un proveedor externo, pero necesita hardware, electricidad, almacenamiento y una licencia compatible. No todos los modelos caben en cualquier equipo.
