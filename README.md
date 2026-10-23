@@ -104,7 +104,7 @@ Un skill no debe concederse autoridad por sí mismo: la autorización se reeval�
 
 ## Ejecución
 
-Requisitos: Node.js 20+, pnpm y variables del proyecto administradas por Vercel. En Preview, AI Gateway autentica automáticamente. Para desarrollo local, configura el Gateway desde las variables del proyecto; nunca pongas claves en el código.
+Requisitos: Node.js 22.18+, pnpm y variables del proyecto administradas por Vercel. En Preview, AI Gateway autentica automáticamente. Para desarrollo local, configura el Gateway desde las variables del proyecto; nunca pongas claves en el código.
 
 ```bash
 pnpm install
@@ -203,7 +203,7 @@ AI_GATEWAY_FALLBACK_MODELS=
 - `provider`: prefijo del proveedor, por ejemplo `openai` o `anthropic`.
 - `modality`: `text`, `image`, `audio`, `video`, `embedding`, `reranking`, `transcription`, `speech` o `realtime`.
 
-Ejemplo: `GET /api/omega/models?provider=openai&modality=text`. La ruta necesita `AI_GATEWAY_API_KEY` o un `VERCEL_OIDC_TOKEN` disponible para esa ejecución. La existencia en el catálogo no garantiza acceso del equipo, créditos disponibles ni soporte para todos los parámetros.
+Ejemplo: `GET /api/omega/models?provider=openai&modality=text`. El catálogo público de metadatos no necesita una clave de Gateway. La existencia en el catálogo no garantiza acceso del equipo, créditos disponibles ni soporte para todos los parámetros.
 
 ### Enrutar agentes de codificación
 
