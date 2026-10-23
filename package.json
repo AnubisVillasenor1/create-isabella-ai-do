@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "build": "next build",
     "start": "next start",
-    "ai-gateway:setup": "npx vercel@latest ai-gateway setup"
+    "ai-gateway:setup": "npx vercel@latest ai-gateway setup",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
