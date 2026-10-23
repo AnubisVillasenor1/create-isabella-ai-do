@@ -1,14 +1,14 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowUpRight, BookOpen, Check, ChevronRight, Copy, FileText, Gauge, GitBranch, Library, Plus, Search, ShieldCheck, Upload, Volume2, X } from 'lucide-react'
+import { Activity, ArrowUpRight, BookOpen, Check, ChevronRight, Copy, FileText, Gauge, GitBranch, Library, Plus, Search, ShieldCheck, Upload, Volume2, X, Wallet, Coins } from 'lucide-react'
 
 type Role = 'isabella' | 'user'
 type Message = { role: Role; text: string; evidence?: string[] }
-type Panel = 'chat' | 'studio' | 'evidence' | 'governance' | 'models'
+type Panel = 'chat' | 'studio' | 'evidence' | 'governance' | 'models' | 'economy'
 type HubResource = { id: string; author?: string; downloads?: number; likes?: number; task?: string | null; tags?: string[]; lastModified?: string | null; url: string; gated?: boolean | string; private?: boolean }
 type DatasetPreview = { dataset: string; config: string; split: string; totalRows: number | null; sampleCount: number; rows: Record<string, unknown>[]; notice: string }
-type LocalModel = { name: string; sizeBytes: number | null; parameters: string | null; quantization: string | null }
+type LocalModel = { name: string; sizeBytes: number | null; parameters: string | null; quantization: string | null }\ntype CommerceCatalog = { pricing: { currency: string; referenceMonthlyCents: number; markupBps: number; monthlyCents: number; monthlyDisplay: string; pricingNote: string }; plans: { id: string; name: string; monthlyCents: number | null; currency: string; monetizationEligible: boolean; features: string[]; billingStatus?: string }[]; creatorTiers: { id: string; label: string; creatorPercent: number; platformPercent: number }[]; platformAllocation: { phoenixFundPercent: number; infrastructurePercent: number; daoPercent: number; appliesTo: string }; capabilities: { checkout: boolean; payouts: boolean; persistentFinancialLedger: boolean; stripeConnect: boolean }; notice: string }\ntype RevenuePreview = { grossCents: number; creatorCents: number; platformCents: number; phoenixFundCents: number; infrastructureCents: number; daoCents: number; creatorBps: number; platformBps: number; eligible: boolean; reason: string; settlementExecuted: boolean; fundsMoved: boolean; trustBoundary: string }
 
 const starters = ['Investigar un tema', 'Redactar un documento', 'Analizar un problema', 'Crear un plan']
 const systems = [
@@ -39,7 +39,7 @@ export default function Page() {
   const [datasetPreview, setDatasetPreview] = useState<DatasetPreview | null>(null)
   const [datasetPreviewLoading, setDatasetPreviewLoading] = useState(false)
   const [ollamaModels, setOllamaModels] = useState<LocalModel[]>([])
-  const [ollamaStatus, setOllamaStatus] = useState('No se ha consultado el runtime local.')
+  const [ollamaStatus, setOllamaStatus] = useState('No se ha consultado el runtime local.')\n  const [commerceCatalog, setCommerceCatalog] = useState<CommerceCatalog | null>(null)\n  const [commerceError, setCommerceError] = useState('')\n  const [revenueGross, setRevenueGross] = useState('100.00')\n  const [creatorTier, setCreatorTier] = useState<'standard' | 'sovereign' | 'elite'>('sovereign')\n  const [previewStatus, setPreviewStatus] = useState<'active' | 'past_due'>('active')\n  const [revenuePreview, setRevenuePreview] = useState<RevenuePreview | null>(null)\n  const [revenuePreviewLoading, setRevenuePreviewLoading] = useState(false)
 
   const evidenceCount = useMemo(() => messages.reduce((sum, message) => sum + (message.evidence?.length ?? 0), 0), [messages])
 
@@ -56,6 +56,39 @@ export default function Page() {
       .finally(() => { if (!controller.signal.aborted) setResourceLoading(false) })
     return () => controller.abort()
   }, [panel, resourceType, resourceQuery])
+
+  useEffect(() => {
+    if (panel !== 'economy' || commerceCatalog) return
+    const controller = new AbortController()
+    setCommerceError('')
+    fetch('/api/commerce/catalog', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error || 'No se pudo cargar el catálogo comercial'); return data as CommerceCatalog })
+      .then(setCommerceCatalog)
+      .catch((error: unknown) => { if (error instanceof Error && error.name !== 'AbortError') setCommerceError(error.message) })
+    return () => controller.abort()
+  }, [panel, commerceCatalog])
+
+  async function previewCreatorRevenue() {
+    setRevenuePreviewLoading(true); setCommerceError('')
+    try {
+      const amount = Number(revenueGross)
+      if (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000) throw new Error('Introduce un importe entre 0 y 1,000,000.')
+      const response = await fetch('/api/commerce/revenue-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grossCents: Math.round(amount * 100), currency: 'USD', creatorTier, subscriptionStatus: previewStatus, planId: previewStatus === 'active' ? 'isabella_plus' : 'isabella_plus' }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'No se pudo calcular el reparto')
+      setRevenuePreview(data as RevenuePreview)
+    } catch (error) { setCommerceError(error instanceof Error ? error.message : 'No se pudo calcular el reparto') }
+    finally { setRevenuePreviewLoading(false) }
+  }
+
+  function money(cents: number | null, currency = 'USD') {
+    if (cents === null) return 'A medida'
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(cents / 100)
+  }
 
   async function loadOllamaModels() {
     setOllamaStatus('Consultando Ollama desde el servidor…')
@@ -109,7 +142,7 @@ export default function Page() {
 
   return <main className="isabella-app">
     <div className="grain" aria-hidden="true" />
-    <nav className="topbar"><a className="wordmark" href="#top">ISABELLA<span>/GENESIS</span></a><span className="workspace-name">V6 / TERMINUS Ω</span><div className="nav-links">{(['chat','studio','models','evidence','governance'] as Panel[]).map((item) => <button key={item} className={panel === item ? 'nav-active' : ''} onClick={() => setPanel(item)}>{item === 'evidence' ? 'Evidence' : item === 'models' ? 'Open Models' : item[0].toUpperCase() + item.slice(1)}</button>)}</div><div className="topbar-actions"><button className="search" onClick={() => setSearchOpen(true)}><Search size={14} /> Buscar <kbd>⌘ K</kbd></button><button className="new-chat" onClick={() => { setMessages([{ role: 'isabella', text: 'Sesión nueva iniciada. El contexto está limpio y listo.' }]); setPanel('chat') }}><Plus size={15} /> Nuevo chat</button><span className="status"><i /> NODO ACTIVO</span></div></nav>
+    <nav className="topbar"><a className="wordmark" href="#top">ISABELLA<span>/GENESIS</span></a><span className="workspace-name">V6 / TERMINUS Ω</span><div className="nav-links">{(['chat','studio','models','economy','evidence','governance'] as Panel[]).map((item) => <button key={item} className={panel === item ? 'nav-active' : ''} onClick={() => setPanel(item)}>{item === 'evidence' ? 'Evidence' : item === 'models' ? 'Open Models' : item === 'economy' ? 'Economía' : item[0].toUpperCase() + item.slice(1)}</button>)}</div><div className="topbar-actions"><button className="search" onClick={() => setSearchOpen(true)}><Search size={14} /> Buscar <kbd>⌘ K</kbd></button><button className="new-chat" onClick={() => { setMessages([{ role: 'isabella', text: 'Sesión nueva iniciada. El contexto está limpio y listo.' }]); setPanel('chat') }}><Plus size={15} /> Nuevo chat</button><span className="status"><i /> NODO ACTIVO</span></div></nav>
     <div className="context-bar"><span className="context-dot" /> WORKSPACE <strong>GENESIS V6</strong><span className="divider">/</span> SESSION · ACTIVE <div className="capabilities"><span className="active">TEXT</span><span>LOCAL FILES</span><span>VOICE</span></div></div>
     <section className="hero" id="top"><div className="hero-copy"><div className="eyebrow">TINA · INTELIGENCIA SOBERANA LATINOAMERICANA <span>GENESIS V6 / TERMINUS Ω</span></div><div className="hero-title"><span>01</span><h1>Intelligence<br /><em>with memory.</em></h1></div><p>Una infraestructura cognitiva para convertir datos dispersos en conocimiento verificable, decisiones auditables y trabajo científico reutilizable.</p><div className="hero-actions"><button className="primary" onClick={() => { setPanel('chat'); document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' }) }}>ABRIR CHAT <ArrowUpRight size={16} /></button><button className="text-link" onClick={() => setPanel('studio')}>ABRIR STUDIO</button></div><div className="system-board"><div><small>RUNTIME</small><b>OBSERVABLE</b><span>salud y estado del nodo</span></div><div><small>GOBERNANZA</small><b>HUMAN-GATED</b><span>autoridad separada de capacidad</span></div><div><small>EVIDENCIA</small><b>BOOKPI</b><span>trazabilidad de decisiones</span></div></div></div><div className="orbital"><div className="orbit orbit-a" /><div className="orbit orbit-b" /><div className="core"><span>IS</span><small>GENESIS<br />V6</small></div><div className="signal signal-one">CONTEXTO<br /><b>DE SESIÓN</b></div><div className="signal signal-two">RUNTIME<br /><b>OBSERVABLE</b></div><div className="orbital-caption">CORE / IDENTITY <b>V6</b></div></div></section>
     <section className="workspace" id="workspace"><div className="workspace-head"><div><div className="eyebrow">CONTROL PLANE <span>FEDERATED / TRACEABLE</span></div><h2>{panel === 'chat' ? 'Habla con Isabella' : panel === 'studio' ? 'Studio de trabajo' : panel === 'evidence' ? 'Ledger de evidencia' : panel === 'models' ? 'Open Model Intelligence' : 'Gobernanza institucional'}</h2></div><div className="workspace-actions"><button onClick={exportSession}><Copy size={14} /> Exportar</button><button onClick={() => setMessages([{ role: 'isabella', text: 'Sesión reiniciada. Estoy aquí para ayudarte.' }])}>Reiniciar</button></div></div>
@@ -123,6 +156,18 @@ export default function Page() {
         {datasetPreview && resourceType === 'datasets' && <section className="dataset-preview"><div><div className="eyebrow">DATASET SAMPLE · {datasetPreview.config} / {datasetPreview.split}</div><h4>{datasetPreview.dataset}</h4><p>{datasetPreview.sampleCount} filas de muestra · {datasetPreview.totalRows === null ? 'total desconocido' : datasetPreview.totalRows.toLocaleString() + ' filas totales'}</p></div><pre>{JSON.stringify(datasetPreview.rows, null, 2)}</pre><p>{datasetPreview.notice}</p></section>}
         {resourceNotice && <p className="hub-notice">{resourceNotice}</p>}
         <div className="hub-tooling"><article><h4>Ollama · modelos locales</h4><p>Ejecuta modelos de pesos abiertos en hardware propio. El runtime configurado debe ser accesible desde este servidor; localhost en producción no es el equipo del usuario.</p><button type="button" className="hub-tool-button" onClick={() => void loadOllamaModels()}>Detectar modelos locales <ArrowUpRight size={13} /></button><p>{ollamaStatus}</p>{ollamaModels.map((model) => <div className="local-model-row" key={model.name}><span><b>{model.name}</b><small>{model.parameters || 'parámetros no informados'}{model.quantization ? ' · ' + model.quantization : ''}</small></span><button type="button" onClick={() => { setChatProvider('ollama'); setChatModel(model.name); setPanel('chat'); document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' }) }}>Usar <ChevronRight size={12} /></button></div>)}</article><article><h4>Hugging Face MCP</h4><p>Conecta el Hub para consultar modelos, datasets, documentación y Spaces con herramientas MCP. Requiere autorización del usuario en el cliente compatible.</p><a href="https://huggingface.co/settings/mcp" target="_blank" rel="noreferrer">Configurar MCP <ArrowUpRight size={13} /></a></article><article><h4>Skills oficiales</h4><p>Guías operativas para el CLI de Hugging Face, búsqueda del Hub y flujos de trabajo ML para agentes compatibles.</p><a href="https://huggingface.co/docs/hub/agents-overview" target="_blank" rel="noreferrer">Consultar skills <ArrowUpRight size={13} /></a></article><article><h4>API y documentación</h4><p>API pública de Hub para modelos, datasets, Spaces y metadatos. Respeta rate limits y licencias por repositorio.</p><a href="https://huggingface.co/docs/hub/en/api" target="_blank" rel="noreferrer">Leer API docs <ArrowUpRight size={13} /></a></article></div>
+      </div>}
+      {panel === 'economy' && <div className="economy-workspace">
+        <div className="economy-intro"><div><div className="eyebrow">REVENUE FABRIC · CREATOR ECONOMY</div><h3>La inteligencia también crea valor.</h3><p>Suscripciones, herramientas y economía de creadores con reglas transparentes, cálculo reproducible y gobernanza humana.</p></div><div className="economy-price"><span>ISABELLA PLUS · REFERENCIA MENSUAL</span><strong>{commerceCatalog ? money(commerceCatalog.pricing.monthlyCents, commerceCatalog.pricing.currency) : '…'}</strong><small>+25% sobre una referencia configurable de {commerceCatalog ? money(commerceCatalog.pricing.referenceMonthlyCents, commerceCatalog.pricing.currency) : '$20.00'}</small></div></div>
+        {commerceError && <p className="error">{commerceError}</p>}
+        {commerceCatalog && <><p className="economy-disclaimer">{commerceCatalog.pricing.pricingNote} Los cobros recurrentes aún no están conectados; esta vista no crea una suscripción.</p>
+        <div className="economy-plans">{commerceCatalog.plans.map((plan) => <article className="economy-plan" key={plan.id}><span className="plan-kicker">{plan.id === 'isabella_plus' ? 'MEMBERSHIP' : plan.id.toUpperCase()}</span><h4>{plan.name}</h4><strong>{money(plan.monthlyCents, plan.currency)}{plan.monthlyCents !== null && plan.monthlyCents > 0 ? <small> / mes</small> : null}</strong><p>{plan.id === 'free' ? 'Explora el ecosistema y conoce sus capacidades.' : plan.id === 'isabella_plus' ? 'Acceso de pago y puerta de elegibilidad para monetización, una vez activados registro, verificación y facturación.' : 'Oferta comercial sujeta a contrato y evaluación.'}</p><span className={plan.monetizationEligible ? 'plan-status' : 'plan-muted'}>{plan.monetizationEligible ? 'Elegibilidad prevista · no activada' : 'Sin reparto habilitado'}</span></article>)}</div>
+        <div className="revenue-rules"><div className="eyebrow">CREATOR SHARE · POLÍTICA DE REPARTO</div><h3>Del 50/50 al 80/20</h3><p>El nivel define el porcentaje de creador en transacciones elegibles. Solo una suscripción de pago activa y un perfil aprobado pueden recibir ingresos; el estado que seleccionas abajo es exclusivamente para simular.</p><div className="share-tiers">{commerceCatalog.creatorTiers.map((tier) => <button type="button" key={tier.id} className={creatorTier === tier.id ? 'share-tier selected' : 'share-tier'} onClick={() => setCreatorTier(tier.id as 'standard' | 'sovereign' | 'elite')}><span>{tier.label}</span><strong>{tier.creatorPercent}% <small>creador</small></strong><em>{tier.platformPercent}% plataforma</em></button>)}</div>
+        <div className="revenue-calculator"><label>Importe bruto USD<input type="number" min="0" max="1000000" step="0.01" value={revenueGross} onChange={(event) => setRevenueGross(event.target.value)} /></label><label>Estado simulado<select value={previewStatus} onChange={(event) => setPreviewStatus(event.target.value as 'active' | 'past_due')}><option value="active">Pago activo</option><option value="past_due">Pago vencido / bloqueado</option></select></label><button type="button" className="primary" onClick={() => void previewCreatorRevenue()} disabled={revenuePreviewLoading}>{revenuePreviewLoading ? 'Calculando…' : 'Calcular reparto'} <ArrowUpRight size={14} /></button></div>
+        {revenuePreview && <div className="revenue-result"><div className="revenue-result-head"><span>{revenuePreview.eligible ? 'SIMULACIÓN · ELEGIBLE SEGÚN DATOS INTRODUCIDOS' : 'SIMULACIÓN · SIN DERECHO A REPARTO'}</span><b>{money(revenuePreview.creatorCents)} <small>para creador</small></b></div><div className="revenue-breakdown"><span>Bruto <b>{money(revenuePreview.grossCents)}</b></span><span>Creador <b>{money(revenuePreview.creatorCents)}</b></span><span>Plataforma <b>{money(revenuePreview.platformCents)}</b></span><span>Fondo Fénix <b>{money(revenuePreview.phoenixFundCents)}</b></span><span>Infraestructura <b>{money(revenuePreview.infrastructureCents)}</b></span><span>DAO <b>{money(revenuePreview.daoCents)}</b></span></div><p>{revenuePreview.reason}. {revenuePreview.trustBoundary}</p><strong className="no-payout">Simulación solamente · no se ha registrado ni transferido dinero.</strong></div>}
+        <div className="platform-allocation"><span>Distribución interna de la parte de plataforma</span><b>20% Fondo Fénix</b><b>30% Infraestructura</b><b>50% DAO</b><small>La distribución se aplica a la parte de plataforma, no al importe bruto.</small></div></div>
+        <div className="economy-capabilities"><span><Check size={14} /> Catálogo de planes y reglas de reparto implementado</span><span><Check size={14} /> Vista previa de reparto en centavos enteros</span><span><ShieldCheck size={14} /> Devengo durable preparado con Supabase migration</span><span><Activity size={14} /> Checkout: {commerceCatalog.capabilities.checkout ? 'configurado' : 'pendiente'}</span><span><Wallet size={14} /> Payouts: {commerceCatalog.capabilities.payouts ? 'configurados' : 'pendientes'}</span></div>
+        </>}
       </div>}
       {panel === 'studio' && <div className="panel-grid"><article><Library size={20} /><h3>Artefactos revisables</h3><p>Convierte las respuestas de Isabella en documentos, hipótesis, planes y entregables con contexto conservado.</p><button onClick={exportSession}>Exportar sesión <ChevronRight size={14} /></button></article><article><Upload size={20} /><h3>Contexto local</h3><p>Incorpora documentos al workspace para que el análisis respete tu fuente, licencia y alcance.</p><label className="dropzone">Seleccionar archivos<input type="file" multiple onChange={addFile} /></label></article></div>}
       {panel === 'evidence' && <div className="ledger"><div className="ledger-summary"><Gauge size={22} /><div><b>{evidenceCount} eventos trazables</b><span>Metadatos visibles de sesión; no equivale a evidencia verificada ni a ledger persistente</span></div></div>{messages.flatMap((message, index) => (message.evidence ?? []).map((item) => <div className="ledger-row" key={`${index}-${item}`}><Check size={14} /><span><b>{item}</b><small>Sesión actual · metadato de interfaz</small></span><code>RECORDED</code></div>))}</div>}
