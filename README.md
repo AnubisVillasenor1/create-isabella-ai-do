@@ -176,3 +176,59 @@ pnpm build
 ```
 
 También faltan pruebas de integración contra Supabase, tests de aislamiento entre tenants, autenticación de usuarios, rate limiting distribuido, auditoría de seguridad, validación de despliegue y revisión de las dependencias externas. Un hash demuestra integridad del contenido comparado, no que el contenido sea verdadero.
+
+
+## Open Models · Hugging Face integration
+
+Isabella ahora incluye un navegador del catálogo público de Hugging Face, selección de proveedor en el chat y un adaptador server-side para Inference Providers.
+
+### Funciones añadidas
+- `GET /api/huggingface/discover?type=models&q=...`: explora modelos del Hub y filtra por texto; opcionalmente admite `task`, `sort` y `limit`.
+- `GET /api/huggingface/discover?type=datasets&q=...`: descubre datasets públicos.
+- `GET /api/huggingface/discover?type=spaces&q=...`: descubre Spaces y aplicaciones comunitarias.
+- `GET /api/huggingface/dataset-preview?dataset=owner/name`: obtiene una vista previa acotada de hasta cinco filas desde Datasets Viewer, sin descargar el dataset completo.
+- El chat puede utilizar `provider: "huggingface"` y un `modelId`, o continuar con el proveedor predeterminado `gateway`.
+- El panel **Open Models** ofrece selección de modelos, enlaces a fichas originales, estadísticas del Hub y accesos a documentación, MCP y skills.
+- La guía de agente está en `skills/huggingface-open-models/SKILL.md`; la referencia operativa, en `docs/HUGGINGFACE_INTEGRATION.md`.
+
+### Variables del servidor
+
+```dotenv
+HF_TOKEN=
+HF_MODEL=openai/gpt-oss-120b:fireworks-ai
+AI_GATEWAY_MODEL=openai/gpt-6.1-sol-fast
+AI_GATEWAY_FALLBACK_MODELS=
+```
+
+Configura `HF_TOKEN` en las variables de entorno privadas de Vercel o en el gestor de secretos local. Nunca utilices `NEXT_PUBLIC_HF_TOKEN` ni publiques credenciales. La exploración pública del catálogo no necesita token; la inferencia sí. Para AI Gateway, `AI_GATEWAY_MODEL` selecciona el modelo principal y `AI_GATEWAY_FALLBACK_MODELS` permite hasta tres IDs alternativos, separados por coma; confirma sus IDs y costes en el catálogo vigente antes de habilitarlos.
+
+### Límites de gratuidad
+**No existe una garantía de que todos los modelos open source puedan ejecutarse gratis en la nube.** Los pesos abiertos pueden ejecutarse localmente con hardware suficiente y licencias compatibles; la inferencia alojada depende del proveedor, los créditos, los límites, la disponibilidad y las condiciones de cada modelo. Hugging Face documenta créditos gratuitos mensuales limitados para Inference Providers, sujetos a cambios. Revisa los costes vigentes antes de automatizar llamadas: https://huggingface.co/docs/inference-providers/pricing
+
+El catálogo muestra metadatos; no certifica calidad, seguridad, licencia comercial ni coste cero. Revisa siempre la model card y licencia antes de adoptar un modelo o dataset.
+
+### MCP, Skills y tools
+Para conectar herramientas de Hugging Face a un agente de desarrollo compatible, configura la integración oficial desde https://huggingface.co/settings/mcp. La autorización se realiza por el operador y cliente; la aplicación web no obtiene automáticamente permisos del Hub. La integración oficial permite descubrir modelos, datasets, Spaces, documentación y herramientas comunitarias compatibles con MCP.
+
+- Agentes y skills: https://huggingface.co/docs/hub/agents-overview
+- MCP: https://huggingface.co/docs/hub/en/agents-mcp
+- API del Hub: https://huggingface.co/docs/hub/en/api
+- Inferencia y proveedores: https://huggingface.co/docs/inference-providers/index
+
+### Verificación
+Se añadió el workflow `.github/workflows/ci.yml` para ejecutar instalación congelada, typecheck, lint y build. El estado debe verificarse en Actions; el código registrado no equivale a un build exitoso ni a un despliegue validado.
+
+
+### Inferencia local sin créditos de proveedor: Ollama
+
+Para ejecutar modelos de pesos abiertos en infraestructura propia, configura Ollama y descarga el modelo que soporte tu hardware. Ejemplo de desarrollo local:
+
+```bash
+ollama pull qwen3:8b
+ollama serve
+pnpm dev
+```
+
+Configura opcionalmente `OLLAMA_BASE_URL` y `OLLAMA_MODEL` en el servidor. La app añade `GET /api/ollama/models` para enumerar los modelos instalados y el selector **Ollama local** para usarlos en el chat. Esta ruta consulta Ollama desde el servidor Next.js: en Vercel, `127.0.0.1` es el contenedor de Vercel, no el ordenador del usuario. Para despliegues remotos, utiliza un endpoint privado y alcanzable, con autenticación de red y controles de acceso. No expongas el puerto de Ollama directamente a Internet.
+
+El cómputo local evita créditos por inferencia de un proveedor externo, pero necesita hardware, electricidad, almacenamiento y una licencia compatible. No todos los modelos caben en cualquier equipo.
