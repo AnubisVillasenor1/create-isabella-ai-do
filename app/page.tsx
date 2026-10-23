@@ -42,6 +42,12 @@ export default function Page() {
   const [datasetPreviewLoading, setDatasetPreviewLoading] = useState(false)
   const [ollamaModels, setOllamaModels] = useState<LocalModel[]>([])
   const [ollamaStatus, setOllamaStatus] = useState('No se ha consultado el runtime local.')\n  const [commerceCatalog, setCommerceCatalog] = useState<CommerceCatalog | null>(null)\n  const [commerceError, setCommerceError] = useState('')\n  const [revenueGross, setRevenueGross] = useState('100.00')\n  const [creatorTier, setCreatorTier] = useState<'standard' | 'sovereign' | 'elite'>('sovereign')\n  const [previewStatus, setPreviewStatus] = useState<'active' | 'past_due'>('active')\n  const [revenuePreview, setRevenuePreview] = useState<RevenuePreview | null>(null)\n  const [revenuePreviewLoading, setRevenuePreviewLoading] = useState(false)
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [supabaseAccessToken, setSupabaseAccessToken] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [creatorStatus, setCreatorStatus] = useState('No activada')
 
   const evidenceCount = useMemo(() => messages.reduce((sum, message) => sum + (message.evidence?.length ?? 0), 0), [messages])
 
@@ -69,6 +75,54 @@ export default function Page() {
       .catch((error: unknown) => { if (error instanceof Error && error.name !== 'AbortError') setCommerceError(error.message) })
     return () => controller.abort()
   }, [panel, commerceCatalog])
+
+  async function commerceAuth(mode: 'signup' | 'login') {
+    setAuthLoading(true); setAuthMessage('')
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !anonKey) { setAuthMessage('Registro deshabilitado: configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.'); setAuthLoading(false); return }
+    try {
+      const response = await fetch(supabaseUrl.replace(/\/$/, '') + '/auth/v1/' + (mode === 'signup' ? 'signup' : 'token?grant_type=password'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json', apikey: anonKey },
+        body: JSON.stringify({ email: authEmail.trim(), password: authPassword }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.msg || data.message || data.error_description || data.error || 'No se pudo completar la autenticación')
+      if (typeof data.access_token === 'string') {
+        setSupabaseAccessToken(data.access_token)
+        setAuthMessage('Sesión iniciada para ' + (data.user?.email || authEmail) + '. El token se mantiene solo en memoria de esta página.')
+      } else {
+        setAuthMessage('Registro recibido. Verifica tu correo y después inicia sesión.')
+      }
+    } catch (error) { setAuthMessage(error instanceof Error ? error.message : 'Error de autenticación') }
+    finally { setAuthLoading(false) }
+  }
+
+  async function startCheckout() {
+    if (!supabaseAccessToken) { setAuthMessage('Inicia sesión o registra tu cuenta antes de suscribirte.'); return }
+    setAuthLoading(true); setAuthMessage('')
+    try {
+      const response = await fetch('/api/commerce/checkout', { method: 'POST', headers: { Authorization: 'Bearer ' + supabaseAccessToken } })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || data.error || 'No se pudo iniciar el checkout')
+      if (typeof data.checkoutUrl !== 'string') throw new Error('El proveedor no devolvió una URL de checkout')
+      window.location.assign(data.checkoutUrl)
+    } catch (error) { setAuthMessage(error instanceof Error ? error.message : 'No se pudo iniciar el checkout') }
+    finally { setAuthLoading(false) }
+  }
+
+  async function activateCreator() {
+    if (!supabaseAccessToken) { setAuthMessage('Inicia sesión antes de activar monetización.'); return }
+    setAuthLoading(true); setAuthMessage('')
+    try {
+      const response = await fetch('/api/commerce/creator/activate', { method: 'POST', headers: { Authorization: 'Bearer ' + supabaseAccessToken } })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || data.error || 'No se pudo activar la cuenta de creador')
+      setCreatorStatus('Activa · nivel ' + data.tier)
+      setAuthMessage(data.note || 'Cuenta de creador activada. Los payouts siguen deshabilitados.')
+    } catch (error) { setAuthMessage(error instanceof Error ? error.message : 'No se pudo activar la cuenta de creador') }
+    finally { setAuthLoading(false) }
+  }
 
   async function previewCreatorRevenue() {
     setRevenuePreviewLoading(true); setCommerceError('')
