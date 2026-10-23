@@ -200,7 +200,7 @@ AI_GATEWAY_MODEL=openai/gpt-6.1-sol-fast
 AI_GATEWAY_FALLBACK_MODELS=
 ```
 
-Configura `HF_TOKEN` en las variables de entorno privadas de Vercel o en el gestor de secretos local. Nunca utilices `NEXT_PUBLIC_HF_TOKEN` ni publiques credenciales. La exploración pública del catálogo no necesita token; la inferencia sí.
+Configura `HF_TOKEN` en las variables de entorno privadas de Vercel o en el gestor de secretos local. Nunca utilices `NEXT_PUBLIC_HF_TOKEN` ni publiques credenciales. La exploración pública del catálogo no necesita token; la inferencia sí. Para AI Gateway, `AI_GATEWAY_MODEL` selecciona el modelo principal y `AI_GATEWAY_FALLBACK_MODELS` permite hasta tres IDs alternativos, separados por coma; confirma sus IDs y costes en el catálogo vigente antes de habilitarlos.
 
 ### Límites de gratuidad
 **No existe una garantía de que todos los modelos open source puedan ejecutarse gratis en la nube.** Los pesos abiertos pueden ejecutarse localmente con hardware suficiente y licencias compatibles; la inferencia alojada depende del proveedor, los créditos, los límites, la disponibilidad y las condiciones de cada modelo. Hugging Face documenta créditos gratuitos mensuales limitados para Inference Providers, sujetos a cambios. Revisa los costes vigentes antes de automatizar llamadas: https://huggingface.co/docs/inference-providers/pricing
