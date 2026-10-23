@@ -114,7 +114,7 @@ begin
 
   select * into v_subscription from public.isabella_commerce_subscriptions
     where user_id = p_creator_user_id and status = 'active' and plan_id <> 'free'
-      and (current_period_end is null or current_period_end > now())
+      and current_period_end > now()
     order by updated_at desc limit 1;
   if not found then
     raise exception 'CREATOR_REQUIRES_ACTIVE_PAID_SUBSCRIPTION' using errcode = '42501';
@@ -145,7 +145,12 @@ begin
     p_source_event_id, p_creator_user_id, v_subscription.id, p_gross_cents, p_currency,
     v_creator.tier, v_user_bps, v_creator_cents, v_platform_cents, v_phoenix,
     v_infrastructure, v_dao, coalesce(p_metadata, '{}'::jsonb)
-  ) returning * into v_run;
+  ) on conflict (source_event_id) do nothing returning * into v_run;
+
+  if not found then
+    select * into v_run from public.isabella_revenue_share_runs where source_event_id = p_source_event_id;
+    return jsonb_build_object('idempotent', true, 'run', to_jsonb(v_run), 'fundsMoved', false);
+  end if;
 
   -- Balanced double-entry accrual: one debit against provider clearing and
   -- credits to the creator and the platform's three internal allocations.
