@@ -53,6 +53,63 @@ export async function POST(request: Request) {
       ? payload.modelId.trim().slice(0, 180)
       : ''
 
+    if (provider === 'ollama') {
+      const configuredBase = process.env.OLLAMA_BASE_URL?.trim()
+      const baseUrl = configuredBase || (process.env.NODE_ENV !== 'production' ? 'http://127.0.0.1:11434' : '')
+      if (!baseUrl) {
+        return Response.json({
+          error: 'Configura OLLAMA_BASE_URL en el servidor para usar Ollama. En despliegues serverless, localhost apunta al servidor y no a tu equipo.',
+          code: 'OLLAMA_BASE_URL_REQUIRED',
+        }, { status: 503 })
+      }
+
+      let endpoint: URL
+      try {
+        endpoint = new URL(baseUrl)
+        if (endpoint.protocol !== 'http:' && endpoint.protocol !== 'https:') throw new Error('invalid_protocol')
+        endpoint.pathname = '/api/chat'
+        endpoint.search = ''
+      } catch {
+        return Response.json({ error: 'OLLAMA_BASE_URL debe ser una URL HTTP/HTTPS válida.' }, { status: 500 })
+      }
+
+      const model = requestedModel || process.env.OLLAMA_MODEL || 'qwen3:8b'
+      if (!/^[a-zA-Z0-9._/-]+(?::[a-zA-Z0-9._-]+)?$/.test(model) || model.includes('..')) {
+        return Response.json({ error: 'Identificador de modelo Ollama no válido.' }, { status: 400 })
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...safeMessages],
+          stream: false,
+          options: { temperature: 0.7, num_predict: 1800 },
+        }),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(90_000),
+      })
+      if (!response.ok) {
+        return Response.json({
+          error: response.status === 404
+            ? 'Ollama no encontró el modelo. Descárgalo con ollama pull o elige un modelo instalado.'
+            : 'Ollama no pudo completar la solicitud. Comprueba que el servicio esté activo y accesible desde el servidor.',
+          code: 'OLLAMA_INFERENCE_ERROR',
+          retryable: response.status >= 500,
+        }, { status: response.status === 404 ? 400 : 502 })
+      }
+      const data = await response.json() as { message?: { content?: string }; model?: string; prompt_eval_count?: number; eval_count?: number }
+      const text = data.message?.content || ''
+      if (!text.trim()) return Response.json({ error: 'Ollama devolvió una respuesta vacía.', code: 'EMPTY_MODEL_RESPONSE' }, { status: 502 })
+      return Response.json({
+        text,
+        provider: 'ollama',
+        model: data.model || model,
+        usage: { prompt_tokens: data.prompt_eval_count ?? null, completion_tokens: data.eval_count ?? null },
+      }, { headers: { 'Cache-Control': 'no-store' } })
+    }
+
     if (provider === 'huggingface') {
       const token = process.env.HF_TOKEN
       if (!token) {
@@ -123,7 +180,7 @@ export async function POST(request: Request) {
     }
 
     if (provider !== 'gateway') {
-      return Response.json({ error: 'Proveedor no admitido. Usa gateway o huggingface.' }, { status: 400 })
+      return Response.json({ error: 'Proveedor no admitido. Usa gateway, huggingface u ollama.' }, { status: 400 })
     }
 
     const result = await generateText({
