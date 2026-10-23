@@ -19,20 +19,9 @@ type GatewayModel = {
   no_training?: string;
 };
 
-function gatewayAuthHeaders(): HeadersInit | null {
-  const credential = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
-  if (!credential) return null;
-  return { Authorization: `Bearer ${credential}`, Accept: "application/json" };
-}
-
 export async function GET(request: Request) {
-  const headers = gatewayAuthHeaders();
-  if (!headers) {
-    return jsonResponse({
-      error: "gateway_auth_not_configured",
-      message: "Configura AI_GATEWAY_API_KEY o usa el entorno Vercel con autenticación OIDC disponible.",
-    }, 503);
-  }
+  // The public catalog contains model metadata only; no team credentials are required.
+  const headers: HeadersInit = { Accept: "application/json" };
 
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") || "").trim().toLowerCase().slice(0, 100);
