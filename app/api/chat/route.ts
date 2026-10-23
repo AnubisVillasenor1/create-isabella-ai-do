@@ -183,17 +183,25 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Proveedor no admitido. Usa gateway, huggingface u ollama.' }, { status: 400 })
     }
 
+    const primaryModel = process.env.AI_GATEWAY_MODEL?.trim() || 'openai/gpt-6.1-sol-fast'
+    const fallbackModels = (process.env.AI_GATEWAY_FALLBACK_MODELS ?? '')
+      .split(',')
+      .map((model) => model.trim())
+      .filter((model) => model.length > 0 && model !== primaryModel)
+      .slice(0, 3)
+
     const result = await generateText({
-      model: process.env.AI_GATEWAY_MODEL?.trim() || 'openai/gpt-6.1-sol-fast',
+      model: primaryModel,
       system: SYSTEM_PROMPT,
       messages: safeMessages,
       temperature: 0.7,
+      ...(fallbackModels.length > 0 ? { providerOptions: { gateway: { models: fallbackModels } } } : {}),
     })
 
     return Response.json({
       text: result.text,
       provider: 'gateway',
-      model: result.response.modelId || process.env.AI_GATEWAY_MODEL || 'openai/gpt-6.1-sol-fast',
+      model: result.response.modelId || primaryModel,
       usage: result.usage,
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
