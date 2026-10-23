@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, useMemo, useState } from 'react'
-import { Activity, ArrowUpRight, BookOpen, Check, ChevronRight, Copy, FileText, Gauge, GitBranch, Library, Mic, Plus, Search, ShieldCheck, Sparkles, Terminal, Upload, Volume2, X } from 'lucide-react'
+import { Activity, ArrowUpRight, BookOpen, Check, ChevronRight, Copy, FileText, Gauge, GitBranch, Library, Plus, Search, ShieldCheck, Upload, Volume2, X } from 'lucide-react'
 
 type Role = 'isabella' | 'user'
 type Message = { role: Role; text: string; evidence?: string[] }
@@ -48,12 +48,12 @@ export default function Page() {
 
   function addFile(event: React.ChangeEvent<HTMLInputElement>) {
     const names = Array.from(event.target.files ?? []).map((file) => file.name)
-    setFiles((current) => [...current, ...names]); setNotice(names.length ? `${names.length} recurso(s) añadido(s) al contexto.` : '')
+    setFiles((current) => [...new Set([...current, ...names])]); setNotice(names.length ? `${names.length} recurso(s) añadido(s) al contexto.` : '')
   }
 
   function exportSession() {
     const body = messages.map((message) => `## ${message.role === 'isabella' ? 'Isabella' : 'Tú'}\n\n${message.text}\n\nEvidencia: ${message.evidence?.join(', ') ?? 'pendiente'}`).join('\n\n')
-    const url = URL.createObjectURL(new Blob([`# Sesión Isabella Genesis V6\n\n${body}`], { type: 'text/markdown' })); const link = document.createElement('a'); link.href = url; link.download = 'isabella-session.md'; link.click(); URL.revokeObjectURL(url); setNotice('Sesión exportada como Markdown.')
+    const url = URL.createObjectURL(new Blob([`# Sesión Isabella Genesis V6\n\n${body}`], { type: 'text/markdown' })); const link = document.createElement('a'); link.href = url; link.download = 'isabella-session.md'; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 0); setNotice('Sesión exportada como Markdown.')
   }
 
   return <main className="isabella-app">
