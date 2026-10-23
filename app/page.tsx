@@ -7,6 +7,7 @@ type Role = 'isabella' | 'user'
 type Message = { role: Role; text: string; evidence?: string[] }
 type Panel = 'chat' | 'studio' | 'evidence' | 'governance' | 'models'
 type HubResource = { id: string; author?: string; downloads?: number; likes?: number; task?: string | null; tags?: string[]; lastModified?: string | null; url: string; gated?: boolean | string; private?: boolean }
+type DatasetPreview = { dataset: string; config: string; split: string; totalRows: number | null; sampleCount: number; rows: Record<string, unknown>[]; notice: string }
 
 const starters = ['Investigar un tema', 'Redactar un documento', 'Analizar un problema', 'Crear un plan']
 const systems = [
@@ -34,6 +35,8 @@ export default function Page() {
   const [resourceLoading, setResourceLoading] = useState(false)
   const [resourceError, setResourceError] = useState('')
   const [resourceNotice, setResourceNotice] = useState('')
+  const [datasetPreview, setDatasetPreview] = useState<DatasetPreview | null>(null)
+  const [datasetPreviewLoading, setDatasetPreviewLoading] = useState(false)
 
   const evidenceCount = useMemo(() => messages.reduce((sum, message) => sum + (message.evidence?.length ?? 0), 0), [messages])
 
@@ -50,6 +53,17 @@ export default function Page() {
       .finally(() => { if (!controller.signal.aborted) setResourceLoading(false) })
     return () => controller.abort()
   }, [panel, resourceType, resourceQuery])
+
+  async function previewDataset(dataset: string) {
+    setDatasetPreviewLoading(true); setResourceError('')
+    try {
+      const response = await fetch('/api/huggingface/dataset-preview?dataset=' + encodeURIComponent(dataset) + '&rows=3', { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || data.error || 'No se pudo previsualizar el dataset')
+      setDatasetPreview(data as DatasetPreview)
+    } catch (error) { setResourceError(error instanceof Error ? error.message : 'Error de vista previa') }
+    finally { setDatasetPreviewLoading(false) }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -91,7 +105,8 @@ export default function Page() {
         <div className="hub-intro"><div><div className="eyebrow">OPEN SOURCE · OPEN WEIGHTS · HUB DISCOVERY</div><h3>Modelos, datasets y herramientas abiertas</h3><p>Descubre recursos públicos de Hugging Face. La licencia abierta del modelo no garantiza inferencia gratuita ni uso comercial sin restricciones.</p></div><a href="https://huggingface.co/docs/hub/agents-overview" target="_blank" rel="noreferrer">Skills y agentes <ArrowUpRight size={14} /></a></div>
         <div className="hub-controls"><div className="hub-tabs">{(['models','datasets','spaces'] as const).map((kind) => <button key={kind} className={resourceType === kind ? 'selected' : ''} onClick={() => setResourceType(kind)}>{kind === 'models' ? 'Modelos' : kind === 'datasets' ? 'Datasets' : 'Spaces / Tools'}</button>)}</div><form onSubmit={(event) => { event.preventDefault(); setResourceQuery((event.currentTarget.elements.namedItem('hubQuery') as HTMLInputElement).value.trim()) }}><Search size={15} /><input name="hubQuery" defaultValue={resourceQuery} placeholder="Buscar por nombre, tarea o dominio…" /><button type="submit">Buscar</button></form></div>
         {resourceLoading && <p className="hub-state">Consultando el catálogo público…</p>}{resourceError && <p className="error">{resourceError}</p>}
-        <div className="hub-results">{resources.map((resource) => <article className="hub-card" key={resource.id}><div className="hub-card-top"><span>{resourceType === 'models' ? 'MODEL REPOSITORY' : resourceType === 'datasets' ? 'DATASET' : 'SPACE / APP'}</span><span>{resource.gated ? 'ACCESS GATED' : 'PUBLIC CATALOG'}</span></div><h4>{resource.id}</h4><p>{resource.task || resource.tags?.slice(0, 3).join(' · ') || 'Recurso de la comunidad Hugging Face'}</p><div className="hub-stats"><span>{(resource.downloads ?? 0).toLocaleString()} descargas</span><span>{(resource.likes ?? 0).toLocaleString()} likes</span></div><div className="hub-card-actions"><a href={resource.url} target="_blank" rel="noreferrer">Abrir ficha <ArrowUpRight size={13} /></a>{resourceType === 'models' && <button type="button" onClick={() => { setChatModel(resource.id); setChatProvider('huggingface'); setPanel('chat'); document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' }); setNotice(`Modelo seleccionado: ${resource.id}. La inferencia requiere HF_TOKEN y disponibilidad del proveedor.`) }}>Usar en chat <ChevronRight size={13} /></button>}</div></article>)}</div>
+        <div className="hub-results">{resources.map((resource) => <article className="hub-card" key={resource.id}><div className="hub-card-top"><span>{resourceType === 'models' ? 'MODEL REPOSITORY' : resourceType === 'datasets' ? 'DATASET' : 'SPACE / APP'}</span><span>{resource.gated ? 'ACCESS GATED' : 'PUBLIC CATALOG'}</span></div><h4>{resource.id}</h4><p>{resource.task || resource.tags?.slice(0, 3).join(' · ') || 'Recurso de la comunidad Hugging Face'}</p><div className="hub-stats"><span>{(resource.downloads ?? 0).toLocaleString()} descargas</span><span>{(resource.likes ?? 0).toLocaleString()} likes</span></div><div className="hub-card-actions"><a href={resource.url} target="_blank" rel="noreferrer">Abrir ficha <ArrowUpRight size={13} /></a>{resourceType === 'models' && <button type="button" onClick={() => { setChatModel(resource.id); setChatProvider('huggingface'); setPanel('chat'); document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' }); setNotice(`Modelo seleccionado: ${resource.id}. La inferencia requiere HF_TOKEN y disponibilidad del proveedor.`) }}>Usar en chat <ChevronRight size={13} /></button>}{resourceType === 'datasets' && <button type="button" disabled={datasetPreviewLoading} onClick={() => void previewDataset(resource.id)}>{datasetPreviewLoading ? 'Cargando…' : 'Vista previa'} <ChevronRight size={13} /></button>}</div></article>)}</div>
+        {datasetPreview && resourceType === 'datasets' && <section className="dataset-preview"><div><div className="eyebrow">DATASET SAMPLE · {datasetPreview.config} / {datasetPreview.split}</div><h4>{datasetPreview.dataset}</h4><p>{datasetPreview.sampleCount} filas de muestra · {datasetPreview.totalRows === null ? 'total desconocido' : datasetPreview.totalRows.toLocaleString() + ' filas totales'}</p></div><pre>{JSON.stringify(datasetPreview.rows, null, 2)}</pre><p>{datasetPreview.notice}</p></section>}
         {resourceNotice && <p className="hub-notice">{resourceNotice}</p>}
         <div className="hub-tooling"><article><h4>Hugging Face MCP</h4><p>Conecta el Hub para consultar modelos, datasets, documentación y Spaces con herramientas MCP. Requiere autorización del usuario en el cliente compatible.</p><a href="https://huggingface.co/settings/mcp" target="_blank" rel="noreferrer">Configurar MCP <ArrowUpRight size={13} /></a></article><article><h4>Skills oficiales</h4><p>Guías operativas para el CLI de Hugging Face, búsqueda del Hub y flujos de trabajo ML para agentes compatibles.</p><a href="https://huggingface.co/docs/hub/agents-overview" target="_blank" rel="noreferrer">Consultar skills <ArrowUpRight size={13} /></a></article><article><h4>API y documentación</h4><p>API pública de Hub para modelos, datasets, Spaces y metadatos. Respeta rate limits y licencias por repositorio.</p><a href="https://huggingface.co/docs/hub/en/api" target="_blank" rel="noreferrer">Leer API docs <ArrowUpRight size={13} /></a></article></div>
       </div>}
