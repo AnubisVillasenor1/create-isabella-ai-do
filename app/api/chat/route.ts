@@ -45,19 +45,41 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Escribe un mensaje para Isabella.' }, { status: 400 })
     }
 
+    const primaryModel = process.env.AI_GATEWAY_MODEL?.trim() || 'openai/gpt-6.1-sol-fast'
+    const fallbackModels = (process.env.AI_GATEWAY_FALLBACK_MODELS ?? '')
+      .split(',')
+      .map((model) => model.trim())
+      .filter((model) => model.length > 0 && model !== primaryModel)
+      .slice(0, 3)
+
     const result = await generateText({
-      model: 'openai/gpt-6.1-sol-fast',
+      model: primaryModel,
       system: SYSTEM_PROMPT,
       messages: safeMessages,
       temperature: 0.7,
+      ...(fallbackModels.length > 0 ? { providerOptions: { gateway: { models: fallbackModels } } } : {}),
     })
 
-    return Response.json({ text: result.text })
+    return Response.json({
+      text: result.text,
+      model: result.response.modelId || primaryModel,
+      usage: result.usage,
+    }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const message = error instanceof Error ? error.message : ''
-    if (message.toLowerCase().includes('credit card') || message.toLowerCase().includes('free credits')) {
+    const normalized = message.toLowerCase()
+    if (normalized.includes('credit card') || normalized.includes('free credits') || normalized.includes('customer_verification_required')) {
       return Response.json({ error: 'El Gateway de IA está conectado, pero necesita una tarjeta válida en Vercel para desbloquear los créditos gratuitos.' }, { status: 402 })
     }
-    return Response.json({ error: 'Isabella no pudo responder. Revisa la configuración del Gateway e inténtalo de nuevo.' }, { status: 500 })
+    if (normalized.includes('insufficient_funds') || normalized.includes('quota_for_entity_exceeded')) {
+      return Response.json({ error: 'El presupuesto o saldo de AI Gateway no es suficiente para esta solicitud.' }, { status: 402 })
+    }
+    if (normalized.includes('429') || normalized.includes('rate limit')) {
+      return Response.json({ error: 'AI Gateway alcanzó un límite de solicitudes. Espera unos segundos y vuelve a intentarlo.' }, { status: 429, headers: { 'Retry-After': '5' } })
+    }
+    if (normalized.includes('401') || normalized.includes('unauthorized') || normalized.includes('authentication')) {
+      return Response.json({ error: 'La autenticación de AI Gateway no está configurada correctamente.' }, { status: 503 })
+    }
+    return Response.json({ error: 'Isabella no pudo responder. Revisa la configuración del Gateway e inténtalo de nuevo.' }, { status: 502 })
   }
 }
