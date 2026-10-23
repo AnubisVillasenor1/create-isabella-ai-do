@@ -50,11 +50,11 @@ export async function GET() {
       appliesTo: "platform_share_only",
     },
     capabilities: {
-      checkout: false,
+      checkout: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.ISABELLA_PUBLIC_URL),
       payouts: false,
       persistentFinancialLedger: false,
-      stripeConnect: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
+      stripeConnect: false,
     },
-    notice: "Catálogo y cálculo informativo. No se cobra, no se liquidan ingresos y no se mueven fondos desde este endpoint.",
+    notice: "El catálogo no cobra por sí mismo. Checkout requiere Stripe configurado y autenticación Supabase; los payouts y la liquidación bancaria no están habilitados.",
   }, { headers: { "Cache-Control": "no-store" } });
 }
