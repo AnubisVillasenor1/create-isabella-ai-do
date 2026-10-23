@@ -133,3 +133,46 @@ La implementación consolida los repositorios públicos `OsoPanda1/isabella-ai-t
 ## Licencia
 
 Conserva las licencias de cada repositorio y dependencia de origen. Antes de redistribuir documentación, código o datos de terceros, verifica sus licencias y atribuciones.
+
+
+## Isabella Ω Genesis Supreme — implementación inicial
+
+Esta rama añade una primera capa operativa de Ω. Los módulos se deben considerar **integración inicial**, no certificación productiva.
+
+### Rutas incorporadas
+
+| Ruta | Función | Límite actual |
+| --- | --- | --- |
+| `GET /api/omega/health` | Informa configuración disponible y dependencias faltantes | No ejecuta pruebas de carga ni certifica el despliegue |
+| `POST /api/omega/policy` | Evalúa una acción y nivel de riesgo con reglas deterministas | No ejecuta la acción; no sustituye autorización por usuario |
+| `GET/POST /api/omega/evidence` | Consulta o registra eventos en Supabase y calcula hashes SHA-256 | No es aún un ledger append-only encadenado: la cadena y la concurrencia requieren controles adicionales |
+| `GET/POST /api/omega/memory` | Guarda y consulta memorias por tenant y propietario | Requiere autenticación de usuario y políticas de aislamiento antes de multiusuario productivo |
+| `POST /api/omega/research` | Normaliza metadatos de claims/fuentes y genera hashes reproducibles | Marca los claims como no verificados; no valida la veracidad de fuentes |
+| `POST /api/omega/music/plan` | Produce un blueprint de composición por género, tempo y secciones | No genera ni sintetiza audio |
+| `/omega` | Panel de estado de configuración de los módulos Ω | Es una vista diagnóstica, no una consola de administración certificada |
+
+### Variables de entorno para los endpoints Ω
+
+```dotenv
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+ISABELLA_OMEGA_API_TOKEN=
+```
+
+Configura los valores en el gestor de secretos del entorno de servidor. **Nunca** los expongas como variables `NEXT_PUBLIC_*`, ni los incluyas en commits. Los endpoints protegidos requieren `Authorization: Bearer <ISABELLA_OMEGA_API_TOKEN>`. Este mecanismo es una barrera compartida de servicio; no equivale a identidad, SSO, RBAC/ABAC ni autorización multiusuario.
+
+### Migración de base de datos
+
+La migración `supabase/migrations/202610230001_isabella_omega_core.sql` crea tablas de evidencia y memoria, índices y habilita RLS sin políticas de cliente. Revisa y ejecuta la migración en un proyecto Supabase de prueba antes de producción. Las escrituras con service role omiten RLS, por lo que el servidor debe validar tenant/owner y deben agregarse controles operativos, grants y triggers para una política append-only real.
+
+### Verificación pendiente
+
+Antes de afirmar que el proyecto está listo para producción, ejecutar en un entorno con dependencias instaladas:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm build
+```
+
+También faltan pruebas de integración contra Supabase, tests de aislamiento entre tenants, autenticación de usuarios, rate limiting distribuido, auditoría de seguridad, validación de despliegue y revisión de las dependencias externas. Un hash demuestra integridad del contenido comparado, no que el contenido sea verdadero.
