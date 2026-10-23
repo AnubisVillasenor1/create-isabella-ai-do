@@ -11,6 +11,7 @@ type DatasetPreview = { dataset: string; config: string; split: string; totalRow
 type LocalModel = { name: string; sizeBytes: number | null; parameters: string | null; quantization: string | null }
 type CommerceCatalog = { pricing: { currency: string; referenceMonthlyCents: number; markupBps: number; monthlyCents: number; monthlyDisplay: string; pricingNote: string }; plans: { id: string; name: string; monthlyCents: number | null; currency: string; monetizationEligible: boolean; features: string[]; billingStatus?: string }[]; creatorTiers: { id: string; label: string; creatorPercent: number; platformPercent: number }[]; platformAllocation: { phoenixFundPercent: number; infrastructurePercent: number; daoPercent: number; appliesTo: string }; capabilities: { checkout: boolean; payouts: boolean; persistentFinancialLedger: boolean; stripeConnect: boolean }; notice: string }
 type RevenuePreview = { grossCents: number; creatorCents: number; platformCents: number; phoenixFundCents: number; infrastructureCents: number; daoCents: number; creatorBps: number; platformBps: number; eligible: boolean; reason: string; settlementExecuted: boolean; fundsMoved: boolean; trustBoundary: string }
+type MarketplaceOffer = { id: string; title: string; description: string; priceCents: number; currency: string; createdAt?: string }
 
 const starters = ['Investigar un tema', 'Redactar un documento', 'Analizar un problema', 'Crear un plan']
 const systems = [
@@ -48,8 +49,19 @@ export default function Page() {
   const [authMessage, setAuthMessage] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [creatorStatus, setCreatorStatus] = useState('No activada')
+  const [marketplaceOffers, setMarketplaceOffers] = useState<MarketplaceOffer[]>([])
+  const [marketplaceMessage, setMarketplaceMessage] = useState('')
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false)
+  const [offerTitle, setOfferTitle] = useState('')
+  const [offerDescription, setOfferDescription] = useState('')
+  const [offerPrice, setOfferPrice] = useState('9.00')
 
   const evidenceCount = useMemo(() => messages.reduce((sum, message) => sum + (message.evidence?.length ?? 0), 0), [messages])
+
+  useEffect(() => {
+    if (panel !== 'economy') return
+    void refreshMarketplaceOffers()
+  }, [panel])
 
   useEffect(() => {
     if (panel !== 'models') return
@@ -75,6 +87,56 @@ export default function Page() {
       .catch((error: unknown) => { if (error instanceof Error && error.name !== 'AbortError') setCommerceError(error.message) })
     return () => controller.abort()
   }, [panel, commerceCatalog])
+
+  async function refreshMarketplaceOffers() {
+    try {
+      const response = await fetch('/api/commerce/marketplace/offers', { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'El marketplace aún no está disponible')
+      setMarketplaceOffers(data.offers ?? [])
+      setMarketplaceMessage(data.notice ?? '')
+    } catch (error) {
+      setMarketplaceMessage(error instanceof Error ? error.message : 'No se pudo consultar el marketplace')
+    }
+  }
+
+  async function publishOffer(event: FormEvent) {
+    event.preventDefault()
+    if (!supabaseAccessToken) { setMarketplaceMessage('Inicia sesión para publicar una oferta.'); return }
+    setMarketplaceLoading(true); setMarketplaceMessage('')
+    try {
+      const price = Number(offerPrice)
+      if (!Number.isFinite(price) || price < 1 || price > 1_000_000) throw new Error('El precio debe estar entre $1 y $1,000,000 USD.')
+      const response = await fetch('/api/commerce/marketplace/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + supabaseAccessToken },
+        body: JSON.stringify({ title: offerTitle, description: offerDescription, priceCents: Math.round(price * 100), currency: 'USD' }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'No se pudo publicar la oferta')
+      setOfferTitle(''); setOfferDescription('')
+      setMarketplaceMessage('Oferta publicada. Las compras confirmadas por Stripe generan un devengo sujeto a elegibilidad.')
+      await refreshMarketplaceOffers()
+    } catch (error) { setMarketplaceMessage(error instanceof Error ? error.message : 'No se pudo publicar la oferta') }
+    finally { setMarketplaceLoading(false) }
+  }
+
+  async function buyOffer(offerId: string) {
+    if (!supabaseAccessToken) { setMarketplaceMessage('Regístrate o inicia sesión para comprar.'); return }
+    setMarketplaceLoading(true); setMarketplaceMessage('')
+    try {
+      const response = await fetch('/api/commerce/marketplace/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + supabaseAccessToken },
+        body: JSON.stringify({ offerId }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'No se pudo iniciar la compra')
+      if (typeof data.checkoutUrl !== 'string') throw new Error('Stripe no devolvió una URL de checkout')
+      window.location.assign(data.checkoutUrl)
+    } catch (error) { setMarketplaceMessage(error instanceof Error ? error.message : 'No se pudo iniciar la compra') }
+    finally { setMarketplaceLoading(false) }
+  }
 
   async function commerceAuth(mode: 'signup' | 'login') {
     setAuthLoading(true); setAuthMessage('')
@@ -223,7 +285,7 @@ export default function Page() {
         <div className="revenue-calculator"><label>Importe bruto USD<input type="number" min="0" max="1000000" step="0.01" value={revenueGross} onChange={(event) => setRevenueGross(event.target.value)} /></label><label>Estado simulado<select value={previewStatus} onChange={(event) => setPreviewStatus(event.target.value as 'active' | 'past_due')}><option value="active">Pago activo</option><option value="past_due">Pago vencido / bloqueado</option></select></label><button type="button" className="primary" onClick={() => void previewCreatorRevenue()} disabled={revenuePreviewLoading}>{revenuePreviewLoading ? 'Calculando…' : 'Calcular reparto'} <ArrowUpRight size={14} /></button></div>
         {revenuePreview && <div className="revenue-result"><div className="revenue-result-head"><span>{revenuePreview.eligible ? 'SIMULACIÓN · ELEGIBLE SEGÚN DATOS INTRODUCIDOS' : 'SIMULACIÓN · SIN DERECHO A REPARTO'}</span><b>{money(revenuePreview.creatorCents)} <small>para creador</small></b></div><div className="revenue-breakdown"><span>Bruto <b>{money(revenuePreview.grossCents)}</b></span><span>Creador <b>{money(revenuePreview.creatorCents)}</b></span><span>Plataforma <b>{money(revenuePreview.platformCents)}</b></span><span>Fondo Fénix <b>{money(revenuePreview.phoenixFundCents)}</b></span><span>Infraestructura <b>{money(revenuePreview.infrastructureCents)}</b></span><span>DAO <b>{money(revenuePreview.daoCents)}</b></span></div><p>{revenuePreview.reason}. {revenuePreview.trustBoundary}</p><strong className="no-payout">Simulación solamente · no se ha registrado ni transferido dinero.</strong></div>}
         <div className="platform-allocation"><span>Distribución interna de la parte de plataforma</span><b>20% Fondo Fénix</b><b>30% Infraestructura</b><b>50% DAO</b><small>La distribución se aplica a la parte de plataforma, no al importe bruto.</small></div></div>
-        <div className="creator-activation"><div><div className="eyebrow">CREATOR ECONOMY</div><h4>Activa tu cuenta de creador</h4><p>Requiere suscripción de pago activa confirmada por el webhook. La activación no equivale a habilitar retiros.</p><span className="plan-status">Estado: {creatorStatus}</span></div><button type="button" className="primary" onClick={() => void activateCreator()} disabled={authLoading || !supabaseAccessToken}>Activar monetización <ArrowUpRight size={14} /></button></div><div className="economy-capabilities"><span><Check size={14} /> Catálogo de planes y reglas de reparto implementado</span><span><Check size={14} /> Vista previa de reparto en centavos enteros</span><span><ShieldCheck size={14} /> Devengo durable preparado con Supabase migration</span><span><Activity size={14} /> Checkout: {commerceCatalog.capabilities.checkout ? 'configurado' : 'pendiente'}</span><span><Wallet size={14} /> Payouts: {commerceCatalog.capabilities.payouts ? 'configurados' : 'pendientes'}</span></div>
+        <div className="creator-activation"><div><div className="eyebrow">CREATOR ECONOMY</div><h4>Activa tu cuenta de creador</h4><p>Requiere suscripción de pago activa confirmada por el webhook. La activación no equivale a habilitar retiros.</p><span className="plan-status">Estado: {creatorStatus}</span></div><button type="button" className="primary" onClick={() => void activateCreator()} disabled={authLoading || !supabaseAccessToken}>Activar monetización <ArrowUpRight size={14} /></button></div><div className="marketplace-panel"><div className="eyebrow">ISABELLA MARKETPLACE · CREATOR TOOLS</div><h3>Publica. Vende. Genera ingresos.</h3><p>Publica productos digitales, plantillas, herramientas, sesiones y servicios permitidos. La compra se cobra por Stripe; el reparto se registra como devengo cuando la cuenta cumple las reglas de elegibilidad. No hay retiro bancario automático.</p><form className="offer-form" onSubmit={(event) => void publishOffer(event)}><input value={offerTitle} onChange={(event) => setOfferTitle(event.target.value)} placeholder="Título de tu oferta" aria-label="Título de tu oferta" minLength={3} maxLength={120} required /><textarea value={offerDescription} onChange={(event) => setOfferDescription(event.target.value)} placeholder="Describe qué recibe el comprador…" aria-label="Descripción de oferta" maxLength={2000} rows={3} required /><div className="offer-form-bottom"><label>Precio USD<input type="number" min="1" max="1000000" step="0.01" value={offerPrice} onChange={(event) => setOfferPrice(event.target.value)} required /></label><button type="submit" className="primary" disabled={marketplaceLoading || !supabaseAccessToken || !offerTitle.trim() || !offerDescription.trim()}>{marketplaceLoading ? 'Procesando…' : 'Publicar oferta'} <ArrowUpRight size={14} /></button></div><small>Requiere cuenta, suscripción de pago activa y perfil de creador activado.</small></form>{marketplaceMessage && <p className="commerce-auth-message">{marketplaceMessage}</p>}<div className="marketplace-offers"><div className="marketplace-heading"><h4>Ofertas disponibles</h4><button type="button" onClick={() => void refreshMarketplaceOffers()}>Actualizar</button></div>{marketplaceOffers.length === 0 ? <p className="hub-state">No hay ofertas publicadas o el catálogo todavía no está conectado.</p> : marketplaceOffers.map((offer) => <article className="marketplace-offer" key={offer.id}><div><h4>{offer.title}</h4><p>{offer.description}</p></div><div className="marketplace-buy"><strong>{money(offer.priceCents, offer.currency)}</strong><button type="button" onClick={() => void buyOffer(offer.id)} disabled={marketplaceLoading || !supabaseAccessToken}>Comprar <ArrowUpRight size={13} /></button></div></article>)}</div></div><div className="economy-capabilities"><span><Check size={14} /> Catálogo de planes y reglas de reparto implementado</span><span><Check size={14} /> Vista previa de reparto en centavos enteros</span><span><ShieldCheck size={14} /> Devengo durable preparado con Supabase migration</span><span><Activity size={14} /> Checkout: {commerceCatalog.capabilities.checkout ? 'configurado' : 'pendiente'}</span><span><Wallet size={14} /> Payouts: {commerceCatalog.capabilities.payouts ? 'configurados' : 'pendientes'}</span></div>
         </>}
       </div>}
       {panel === 'studio' && <div className="panel-grid"><article><Library size={20} /><h3>Artefactos revisables</h3><p>Convierte las respuestas de Isabella en documentos, hipótesis, planes y entregables con contexto conservado.</p><button onClick={exportSession}>Exportar sesión <ChevronRight size={14} /></button></article><article><Upload size={20} /><h3>Contexto local</h3><p>Incorpora documentos al workspace para que el análisis respete tu fuente, licencia y alcance.</p><label className="dropzone">Seleccionar archivos<input type="file" multiple onChange={addFile} /></label></article></div>}
