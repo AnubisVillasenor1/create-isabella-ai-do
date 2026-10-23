@@ -73,9 +73,9 @@ export function computeRevenueSplit(input: {
 }
 
 export function getMonthlyPricing() {
-  const referenceCents = parsePositiveInteger(process.env.ISABELLA_REFERENCE_AI_PRICE_CENTS, 2_000);
-  const markupBps = parsePositiveInteger(process.env.ISABELLA_PRICE_MARKUP_BPS, 2_500);
-  const monthlyCents = Math.ceil(referenceCents * (10_000 + markupBps) / 10_000);
+  const referenceCents = parseBoundedInteger(process.env.ISABELLA_REFERENCE_AI_PRICE_CENTS, 2_000, 100, 100_000_000);
+  const markupBps = parseBoundedInteger(process.env.ISABELLA_PRICE_MARKUP_BPS, 2_500, 0, 100_000);
+  const monthlyCents = Math.min(100_000_000, Math.ceil(referenceCents * (10_000 + markupBps) / 10_000));
   return {
     currency: "USD",
     referenceMonthlyCents: referenceCents,
@@ -86,8 +86,8 @@ export function getMonthlyPricing() {
   };
 }
 
-function parsePositiveInteger(raw: string | undefined, fallback: number): number {
+function parseBoundedInteger(raw: string | undefined, fallback: number, min: number, max: number): number {
   if (!raw) return fallback;
   const value = Number(raw);
-  return Number.isSafeInteger(value) && value > 0 && value <= 10_000_000 ? value : fallback;
+  return Number.isSafeInteger(value) && value >= min && value <= max ? value : fallback;
 }
