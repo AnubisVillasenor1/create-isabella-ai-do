@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+type GatewayModel = { id?: string; name?: string; contextWindow?: number; tags?: string[]; modalities?: { input?: string[]; output?: string[] }; };
+
 type Health = {
   service?: string;
   status?: string;
@@ -22,6 +24,8 @@ const modules = [
 export default function OmegaControlPlane() {
   const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState("");
+  const [models, setModels] = useState<GatewayModel[]>([]);
+  const [modelCatalogStatus, setModelCatalogStatus] = useState("consultando…");
 
   useEffect(() => {
     let active = true;
@@ -32,6 +36,19 @@ export default function OmegaControlPlane() {
       })
       .then((value) => { if (active) setHealth(value); })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Error de estado"); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/omega/models?modality=text", { cache: "no-store" })
+      .then(async (response) => {
+        const value = await response.json();
+        if (!response.ok) throw new Error(value?.message || value?.error || "Catálogo no disponible");
+        return value as { models?: GatewayModel[]; count?: number };
+      })
+      .then((value) => { if (active) { setModels(value.models ?? []); setModelCatalogStatus(`${value.count ?? value.models?.length ?? 0} modelos de texto disponibles`); } })
+      .catch((reason: unknown) => { if (active) setModelCatalogStatus(reason instanceof Error ? reason.message : "Catálogo no disponible"); });
     return () => { active = false; };
   }, []);
 
@@ -67,6 +84,22 @@ export default function OmegaControlPlane() {
         </section>
 
         {error && <p role="alert" className="mb-5 rounded-xl border border-rose-400/30 bg-rose-400/5 p-4 text-sm text-rose-200">{error}</p>}
+
+        <section className="mb-8 rounded-2xl border border-white/10 bg-white/[0.025] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-medium">AI Gateway · Catálogo de modelos</h2>
+              <p className="mt-1 text-sm text-slate-400">{modelCatalogStatus}</p>
+            </div>
+            <a href="/api/omega/models?modality=text" target="_blank" rel="noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 hover:border-sky-300/50">Ver API JSON</a>
+          </div>
+          {models.length > 0 ? <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {models.slice(0, 9).map((model) => <li key={model.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="break-all text-sm font-medium text-slate-200">{model.id}</p>
+              <p className="mt-1 text-xs text-slate-500">{model.name || "AI Gateway model"}{model.contextWindow ? ` · ${model.contextWindow.toLocaleString()} context` : ""}</p>
+            </li>)}
+          </ul> : <p className="mt-4 text-sm text-slate-500">El catálogo requiere autenticación de AI Gateway en el servidor. No se publica ninguna clave en el navegador.</p>}
+        </section>
 
         <section className="grid gap-4 md:grid-cols-2">
           {modules.map(([name, description], index) => (

@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const env = {
     modelGateway: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL),
+    primaryModelConfigured: Boolean(process.env.AI_GATEWAY_MODEL || process.env.VERCEL),
     terminusConfigured: Boolean(process.env.ISABELLA_TERMINUS_URL && process.env.ISABELLA_TERMINUS_TOKEN),
     durableStoreConfigured: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
     omegaApiGateConfigured: Boolean(process.env.ISABELLA_OMEGA_API_TOKEN),
