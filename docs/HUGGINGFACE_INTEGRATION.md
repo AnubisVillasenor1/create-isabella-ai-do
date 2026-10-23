@@ -37,3 +37,9 @@ The catalog returns public metadata only. Before using any model or dataset, ins
 - Add authentication, per-user quotas, abuse controls and observability before public multi-user use.
 - Do not send confidential user documents to external inference providers without explicit consent.
 - Run typecheck, lint, build and integration tests before merge.
+
+
+## Self-hosted alternative: Ollama
+Isabella supports `provider: "ollama"` and a server-side model catalog at `GET /api/ollama/models`. Configure `OLLAMA_BASE_URL` and optionally `OLLAMA_MODEL`. This is intended for local development or a private/self-hosted runtime reachable from the Next.js server. In a serverless deployment, `127.0.0.1` refers to the serverless container, not the user's laptop. Do not expose Ollama's port directly to the public internet.
+
+Local inference does not use Hugging Face hosted inference credits, but still requires compute hardware, power, storage, and license compliance. Model availability and quality depend on the model pulled into Ollama.
