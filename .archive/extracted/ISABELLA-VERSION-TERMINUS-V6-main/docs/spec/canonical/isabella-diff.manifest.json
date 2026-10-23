@@ -1,0 +1,46 @@
+{
+  "id": "isabella.diff",
+  "name": "Isabella Diff Observatory",
+  "version": "1.0.0",
+  "description": "Live governed diff pane for Isabella sessions.",
+  "entrypoint": "./register.ts",
+  "commands": [
+    {
+      "name": "/diff",
+      "description": "Open the workspace diff beside the transcript.",
+      "arguments": ["refresh", "open", "close", "clear-selection"]
+    }
+  ],
+  "events": [
+    "claude.edit",
+    "shell.command",
+    "turn.finished",
+    "workspace.changed",
+    "bookpi.decision"
+  ],
+  "permissions": {
+    "workspace": "read",
+    "transcript": "read",
+    "filesystem": "read-diff-only",
+    "network": "none",
+    "write": "none-by-default"
+  },
+  "ui": {
+    "placement": "beside-transcript",
+    "openOnFirstEdit": true,
+    "minTerminalWidth": 118,
+    "responsive": true,
+    "supportsReducedMotion": true,
+    "supportsHighContrast": true
+  },
+  "governance": {
+    "bookpi": {
+      "enabled": true,
+      "event": "diff.observation",
+      "contentPolicy": "metadata-and-hashes-only"
+    },
+    "riskSignals": true,
+    "secretRedaction": true,
+    "binaryOmission": true
+  }
+}

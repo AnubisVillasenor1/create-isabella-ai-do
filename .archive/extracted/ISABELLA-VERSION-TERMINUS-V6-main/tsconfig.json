@@ -1,0 +1,59 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "test",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "src/lib",
+    "src/authz-runtime",
+    "src/hypercore-runtime",
+    "src/components",
+    "src/hooks",
+    "src/core",
+    "src/cognition/moe",
+    "src/cognition/rag",
+    "src/memory/mesh",
+    "src/learning/federated",
+    "src/observability",
+    "src/federation/tamv",
+    "src/pipeline/hyper-turbo",
+    "src/ui/integration.ts",
+    "src/economy/revenue-fabric/storage.ts",
+    "src/routes/revenue-fabric.ts",
+    "src/multimodal",
+    "src/security/bookpi-integrity.ts",
+    "src/security/http-hardening.ts",
+    "src/security/pqc",
+    "src/security/secret-scanner.ts",
+    "src/security/zero-trust",
+    "src/governance/cognitive",
+    "node_modules",
+    "dist"
+  ]
+}

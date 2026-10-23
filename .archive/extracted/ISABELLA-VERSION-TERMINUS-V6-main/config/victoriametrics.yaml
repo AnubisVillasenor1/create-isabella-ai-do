@@ -1,0 +1,60 @@
+# VictoriaMetrics configuration for ISABELLA GENESIS ZERO-OPEX v3
+# Optimized for low resource usage on OCI Always Free
+
+# Storage
+storageDataPath: /victoria-metrics-data
+retentionPeriod: 30d
+
+# HTTP Server
+httpListenAddr: :8428
+
+# Memory Management
+memory.allowedPercent: 60
+memory.limitPercent: 70
+
+# Ingestion
+maxInsertRequestSize: 32MB
+maxConcurrentInserts: 100
+
+# Query
+search.maxPointsPerTimeseries: 100000
+search.maxUniqueTimeseries: 100000
+search.maxStepForPointsAdjustment: 1h
+search.maxSamplesPerQuery: 1000000
+search.maxSamplesPerSeries: 10000
+
+# Compression
+enableTCP6: false
+enableGRPC: false
+graphiteListenAddr: ""
+opentsdbListenAddr: ""
+influxListenAddr: ""
+prometheusRemotewriteListenAddr: ""
+
+# TLS (if needed)
+# tlsCertFile: ""
+# tlsKeyFile: ""
+
+# Retention
+retentionPeriod: 30d
+
+# Downsampling (optional - for long-term retention)
+# downsampling.period: 30d
+# downsampling.maxGap: 1h
+# downsampling.percentiles: [0.5, 0.95, 0.99]
+
+# Backup
+# backupStoragePath: /backup
+
+# Monitoring
+selfMonitoringInterval: 30s
+
+# HTTP API limits
+httpIdleTimeout: 30s
+httpReadTimeout: 30s
+httpWriteTimeout: 30s
+httpMaxGracefulShutdownDuration: 10s
+
+# Logging
+logLevel: INFO
+logFormat: json

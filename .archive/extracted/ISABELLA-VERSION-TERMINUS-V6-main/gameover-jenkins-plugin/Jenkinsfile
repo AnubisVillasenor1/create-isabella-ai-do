@@ -1,0 +1,55 @@
+// GAME OVER / UAGP-1 governance gate example pipeline.
+// Build fails closed when the governance decision is not ALLOW (REJECT/ESCALATE).
+pipeline {
+  agent any
+
+  environment {
+    UAGP_PASSPORT_ID = 'GOP-agent-builder'
+  }
+
+  stages {
+    stage('Govern') {
+      steps {
+        script {
+          def decision = gameOverGovernance(
+            passportId: "${env.UAGP_PASSPORT_ID}",
+            objectiveTitle: 'Build and prepare deployment artifact',
+            objectiveDescription: 'Compile, test and package the application.',
+            agentId: 'ci-builder',
+            agentName: 'CI Builder Agent',
+            agentOwner: 'platform-team',
+            agentOrganization: 'TAMV',
+            capabilities: 'build,test,package',
+            actions: 'build,test,package',
+            criticality: 'MEDIUM',
+            failOnReject: true
+          )
+          echo "GAME OVER outcome=${decision.outcome} audit=${decision.auditHash}"
+        }
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        script {
+          // A deploy is high risk: a named human approver must match the
+          // authenticated Jenkins user, otherwise the step escalates and stops.
+          def decision = gameOverGovernance(
+            passportId: "${env.UAGP_PASSPORT_ID}",
+            objectiveTitle: 'Deploy to production',
+            agentId: 'ci-builder',
+            agentName: 'CI Builder Agent',
+            agentOwner: 'platform-team',
+            agentOrganization: 'TAMV',
+            capabilities: 'build,test,package',
+            actions: 'deploy',
+            criticality: 'HIGH',
+            humanApprover: "${env.BUILD_USER_ID}",
+            failOnReject: true
+          )
+          echo "GAME OVER deploy outcome=${decision.outcome}"
+        }
+      }
+    }
+  }
+}

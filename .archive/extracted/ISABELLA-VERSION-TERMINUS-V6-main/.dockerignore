@@ -1,0 +1,34 @@
+# Isabella GenesisAI — .dockerignore
+# Mantener el contexto de build mínimo: solo lo necesario para construir la imagen.
+
+# Dependencias y artefactos
+node_modules
+**/node_modules
+dist
+coverage
+*.tsbuildinfo
+
+# Control de versiones y CI
+.git
+.github
+
+# Directorios no necesarios en la imagen
+docs
+test
+scripts
+services
+infra
+k8s
+data
+
+# Logs y entorno
+*.log
+.env
+.env.*
+
+# Extras de repo
+README.md
+LICENSE
+metadata.json
+.vscode
+.idea

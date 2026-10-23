@@ -1,0 +1,10 @@
+# state: draft | auto_generated — ISA namespace (Cluster E)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: isabella-genesis
+  labels:
+    app.kubernetes.io/name: isabella-genesisai
+    app.kubernetes.io/part-of: tamv
+    # Etiqueta usada por los namespaceSelector de NetworkPolicy.
+    kubernetes.io/metadata.name: isabella-genesis

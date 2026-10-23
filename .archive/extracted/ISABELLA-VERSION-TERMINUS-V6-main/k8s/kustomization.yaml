@@ -1,0 +1,21 @@
+# state: draft | auto_generated — Cluster E
+# Orden de recursos para `kubectl apply -k k8s`.
+#
+# NO incluidos a propósito:
+#   - sealed-secret-example.yaml: plantilla con placeholders; requiere kubeseal/KMS
+#     humano (BLOCKED_ENVIRONMENT). Ver lineage en README.
+#   - El tls Secret del Ingress: lo provee cert-manager/cloud externo.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: isabella-genesis
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+  - hpa.yaml
+  - priorityclass.yaml
+  - statefulsets.yaml

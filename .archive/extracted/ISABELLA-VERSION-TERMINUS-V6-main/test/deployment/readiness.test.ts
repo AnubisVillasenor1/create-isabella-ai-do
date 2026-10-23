@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {assessReadiness} from "../../src/deployment/readiness";
+describe("deployment readiness",()=>{it("never reports deployable with blockers",()=>{const r=assessReadiness({TYPECHECK:true,TESTS:true,BUILD:false,SECRETS:true,DATABASE:true,MODEL:false,OBSERVABILITY:true,ROLLBACK:true});expect(r.deployable).toBe(false);expect(r.blockers).toEqual(["BUILD","MODEL"]);});});

@@ -1,0 +1,18 @@
+# state: draft | auto_generated — Cluster E
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-genesis
+  namespace: isabella-genesis
+  labels:
+    app.kubernetes.io/name: isabella-genesisai
+    app.kubernetes.io/component: runtime
+spec:
+  type: ClusterIP
+  selector:
+    app: isabella-genesis
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

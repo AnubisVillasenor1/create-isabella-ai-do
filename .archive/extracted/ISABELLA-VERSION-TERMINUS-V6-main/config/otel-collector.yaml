@@ -1,0 +1,308 @@
+# OpenTelemetry Collector Configuration for ISABELLA GENESIS ZERO-OPEX v3
+# Optimized for low resource usage with VictoriaMetrics backend
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'isabella-core'
+          static_configs:
+            - targets: ['isabella-core:8080']
+              labels:
+                service: 'isabella-core'
+                environment: 'production'
+        
+        - job_name: 'postgres'
+          static_configs:
+            - targets: ['postgres:5432']
+              labels:
+                service: 'postgres'
+                environment: 'production'
+        
+        - job_name: 'ollama'
+          static_configs:
+            - targets: ['ollama:11434']
+              labels:
+                service: 'ollama'
+                environment: 'production'
+        
+        - job_name: 'victoriametrics'
+          static_configs:
+            - targets: ['victoriametrics:8428']
+              labels:
+                service: 'victoriametrics'
+                environment: 'production'
+        
+        - job_name: 'crowdsec'
+          static_configs:
+            - targets: ['crowdsec:2112']
+              labels:
+                service: 'crowdsec'
+                environment: 'production'
+        
+        - job_name: 'caddy'
+          static_configs:
+            - targets: ['caddy:2019']
+              labels:
+                service: 'caddy'
+                environment: 'production'
+        
+        - job_name: 'node-exporter'
+          static_configs:
+            - targets: ['node-exporter:9100']
+              labels:
+                service: 'node-exporter'
+                environment: 'production'
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: 'go_.*|process_.*|promhttp_.*'
+              action: drop
+
+  # Host metrics
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.time:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.usage:
+            enabled: true
+          system.memory.utilization:
+            enabled: true
+      disk:
+        metrics:
+          system.disk.usage:
+            enabled: true
+          system.disk.io:
+            enabled: true
+      filesystem:
+        metrics:
+          system.filesystem.usage:
+            enabled: true
+          system.filesystem.utilization:
+            enabled: true
+      network:
+        metrics:
+          system.network.io:
+            enabled: true
+          system.network.packets:
+            enabled: true
+      load:
+        metrics:
+          system.load.1m:
+            enabled: true
+          system.load.5m:
+            enabled: true
+          system.load.15m:
+            enabled: true
+      paging:
+        metrics:
+          system.paging.usage:
+            enabled: true
+          system.paging.operations:
+            enabled: true
+      process:
+        metrics:
+          process.cpu.utilization:
+            enabled: true
+          process.memory.usage:
+            enabled: true
+          process.memory.virtual:
+            enabled: true
+          process.disk.io:
+            enabled: true
+          process.threads:
+            enabled: true
+          process.open_file_descriptors:
+            enabled: true
+
+  # Process metrics for isabella-core
+  process:
+    collection_interval: 30s
+    include:
+      match_type: regexp
+      patterns:
+        - isabella-core
+        - ollama
+        - postgres
+
+processors:
+  # Batch processing for efficiency
+  batch:
+    timeout: 10s
+    send_batch_max_size: 1000
+    send_batch_size: 512
+    schedule_delay_millis: 5000
+
+  # Memory limiter
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+    ballast_size_mib: 64
+
+  # Resource attributes
+  resource:
+    attributes:
+      - key: service.name
+        value: "isabella-core"
+        action: upsert
+      - key: service.version
+        value: "1.0.0"
+        action: upsert
+      - key: deployment.environment
+        value: "production"
+        action: upsert
+      - key: cloud.provider
+        value: "oci"
+        action: upsert
+      - key: cloud.region
+        value: "us-phoenix-1"
+        action: upsert
+      - key: cloud.availability_zone
+        value: "PHX-AD-1"
+        action: upsert
+      - key: host.name
+        value: "${HOSTNAME}"
+        action: upsert
+
+  # Filter out noisy metrics
+  filter:
+    metrics:
+      exclude:
+        match_type: regexp
+        metric_names:
+          - go_.*
+          - process_.*
+          - promhttp_.*
+          - otelcol_.*
+          - runtime_.*
+
+  # Transform attributes
+  transform:
+    metric_statements:
+      - context: metric
+        statements:
+          - set(attributes["service.instance.id"], "${HOSTNAME}") where attributes["service.name"] == "isabella-core"
+
+  # Tail sampling for traces
+  tail_sampling:
+    decision_wait: 30s
+    num_traces: 50000
+    expected_new_traces_per_sec: 1000
+    policies:
+      - name: errors
+        type: string_attribute
+        string_attribute:
+          key: status_code
+          values: ["500", "502", "503", "504"]
+      - name: slow
+        type: latency
+        latency:
+          threshold_ms: 5000
+      - name: expensive
+        type: string_attribute
+        string_attribute:
+          key: http.route
+          values: ["/api/v1/rag/*", "/api/v1/memory/*"]
+
+  # Resource detection
+  resourcedetection:
+    detectors: [system, env, docker]
+    timeout: 5s
+    override: true
+
+exporters:
+  # VictoriaMetrics via Prometheus remote write
+  prometheusremotewrite:
+    endpoint: "http://victoriametrics:8428/api/v1/write"
+    timeout: 30s
+    headers:
+      Content-Type: application/x-protobuf
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # OTLP HTTP for traces
+  otlphttp:
+    endpoint: "http://victoriametrics:8428/api/v1/traces"
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # Debug console (for development)
+  logging:
+    loglevel: debug
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # Prometheus for local scraping
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+    namespace: isabella
+    send_timestamps: true
+    metric_expiration: 300s
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  telemetry:
+    logs:
+      level: info
+      encoding: json
+      output_paths: ["/var/log/otelcol.log"]
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
+    traces:
+      level: info
+  
+  extensions:
+    - health_check
+    - pprof
+    - zpages
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, transform, tail_sampling]
+      exporters: [otlphttp, logging]
+    
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics, process]
+      processors: [memory_limiter, batch, resource, filter]
+      exporters: [prometheusremotewrite, prometheus, logging]
+    
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [logging]
+
+  # Telemetry for the collector itself
+  telemetry:
+    logs:
+      level: info
+      encoding: json
+      output_paths: ["/var/log/otelcol.log"]
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

@@ -1,0 +1,187 @@
+# Caddyfile for ISABELLA GENESIS ZERO-OPEX v3
+# Automatic HTTPS with Let's Encrypt, HTTP/3, and security headers
+
+{
+    # Global options
+    admin off
+    auto_https disable_redirects
+    
+    # Email for Let's Encrypt registration
+    email admin@tamv.online
+    
+    # ACME challenge providers
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
+# Main domain - Isabella API & UI
+isabella.tamv.online {
+    # Security headers
+    header {
+        # HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+        
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+        
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        
+        # Permissions Policy
+        Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+        
+        # Remove server header
+        -Server
+        
+        # Custom headers
+        X-Powered-By "Isabella Genesis Zero-OPEX v3"
+        X-Content-Type-Options "nosniff"
+    }
+
+    # Rate limiting for API endpoints
+    @api {
+        path /api/*
+    }
+    rate_limit @api {
+        zone api_limit
+        key {remote}
+        events 100
+        window 1m
+    }
+
+    # Stricter rate limiting for auth endpoints
+    @auth {
+        path /api/v1/auth/*
+        path /api/v1/login
+        path /api/v1/register
+    }
+    rate_limit @auth {
+        zone auth_limit
+        key {remote}
+        events 10
+        window 1m
+    }
+
+    # WebSocket support for real-time features
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    reverse_proxy @websocket isabella-core:8080
+
+    # Health check - no rate limit
+    @health {
+        path /api/v1/health
+        path /api/v1/healthz
+        path /api/v1/readyz
+    }
+    reverse_proxy @health isabella-core:8080
+
+    # API endpoints
+    @api {
+        path /api/*
+    }
+    reverse_proxy @api isabella-core:8080
+
+    # Static assets and UI
+    @static {
+        path /assets/*
+        path /static/*
+        path /favicon.ico
+        path /manifest.json
+    }
+    reverse_proxy @static isabella-core:8080
+
+    # Default - serve UI
+    reverse_proxy isabella-core:8080 {
+        # Timeouts
+        transport http {
+            read_timeout 30s
+            write_timeout 30s
+            idle_timeout 120s
+        }
+        
+        # Load balancing (for future scaling)
+        lb_policy first
+        
+        # Health check
+        health_uri /api/v1/health
+        health_interval 10s
+        health_timeout 5s
+        health_retries 3
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/isabella-access.log {
+            roll_size 100mb
+            roll_keep 30
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
+
+# Admin panel (restricted to internal network)
+admin.tamv.online {
+    basicauth {
+        admin {bcrypt_hash_here}
+    }
+    
+    reverse_proxy isabella-core:8080 {
+        transport http {
+            read_timeout 60s
+            write_timeout 60s
+        }
+    }
+    
+    # Only allow from internal IPs
+    @internal {
+        remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    }
+    respond @internal 403
+}
+
+# Metrics endpoint (internal only)
+metrics.tamv.online {
+    @internal {
+        remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    }
+    respond @internal 403
+    
+    reverse_proxy victoriametrics:8428
+}
+
+# CrowdSec dashboard (internal only)
+crowdsec.tamv.online {
+    @internal {
+        remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    }
+    respond @internal 403
+    
+    reverse_proxy crowdsec:8080
+}
+
+# Rate limit zone definitions (in global scope)
+(rate_limit_zones) {
+    zone api_limit {
+        key {remote}
+        events 100
+        window 1m
+        store memory
+    }
+    
+    zone auth_limit {
+        key {remote}
+        events 10
+        window 1m
+        store memory
+    }
+}
+
+import (rate_limit_zones)

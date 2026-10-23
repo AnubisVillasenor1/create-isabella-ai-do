@@ -1,0 +1,111 @@
+name: Repository Assurance
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - "main"
+      - "evolution/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-assurance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+  ASSURANCE_MODE: sovereign
+
+jobs:
+  structural-assurance:
+    name: Structural assurance (dependency-free audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate repository structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUIRED_PATHS=(
+            "scripts/repository-assurance.mjs"
+            "artifacts/assurance"
+          )
+          for p in "${REQUIRED_PATHS[@]}"; do
+            if [ ! -e "$p" ]; then
+              echo "::error::Required path missing: $p"
+              exit 1
+            fi
+          done
+          echo "Repository structure OK."
+
+      - name: Run dependency-free structural audit
+        shell: bash
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          ASSURANCE_MODE: ${{ env.ASSURANCE_MODE }}
+        run: |
+          set -euo pipefail
+          node scripts/repository-assurance.mjs
+
+      - name: Validate assurance artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          JSON="artifacts/assurance/repository-assurance.json"
+          MD="artifacts/assurance/repository-assurance.md"
+
+          if [ ! -f "$JSON" ]; then
+            echo "::error::Assurance JSON not found: $JSON"
+            exit 1
+          fi
+
+          if [ ! -f "$MD" ]; then
+            echo "::error::Assurance Markdown not found: $MD"
+            exit 1
+          fi
+
+          # Validación mínima de JSON válido
+          node -e '
+            const fs = require("node:fs");
+            const p = process.argv[1];
+            try {
+              JSON.parse(fs.readFileSync(p, "utf8"));
+              console.log("Assurance JSON is valid.");
+            } catch (e) {
+              console.error("Assurance JSON is invalid: " + e.message);
+              process.exit(1);
+            }
+          ' "$JSON"
+
+          # Validación mínima de que el MD no esté vacío
+          if [ ! -s "$MD" ]; then
+            echo "::error::Assurance Markdown is empty: $MD"
+            exit 1
+          fi
+
+          echo "Assurance artifacts validated."
+
+      - name: Publish machine-readable evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repository-assurance-${{ github.sha }}
+          path: |
+            artifacts/assurance/repository-assurance.json
+            artifacts/assurance/repository-assurance.md
+          if-no-files-found: warn
+          retention-days: 30

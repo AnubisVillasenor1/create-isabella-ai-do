@@ -1,0 +1,49 @@
+# SOPS/AGE Configuration for ISABELLA GENESIS ZERO-OPEX v3
+# Encrypt secrets with AGE and store in GitOps
+
+# .sops.yaml
+# Run: sops --config .sops.yaml --encrypt --in-place secrets.enc.yaml
+
+creation_rules:
+  # Encrypt all .enc.yaml files with AGE
+  - path_regex: secrets\.enc\.yaml$
+    age: >
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      age1yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    encrypted_regex: ^(data|stringData)$
+
+  # Encrypt all .env.enc files
+  - path_regex: \.env\.enc$
+    age: >
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      age1yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    encrypted_regex: '.*'
+
+# Age key generation:
+# age-keygen -o age.key
+# Public key goes in .sops.yaml above
+# Private key stored securely (1Password, Bitwarden, hardware key)
+
+# Usage:
+# 1. Generate keys: age-keygen -o age.key
+# 2. Add public keys to .sops.yaml
+# 3. Create plaintext secrets file: secrets.yaml
+# 4. Encrypt: sops --config .sops.yaml --encrypt --in-place secrets.yaml
+# 4. Commit secrets.enc.yaml to git
+# 5. Decrypt in CI/CD: sops --config .sops.yaml --decrypt secrets.enc.yaml > secrets.yaml
+
+# Example secrets.yaml structure:
+# DATABASE_URL: "postgresql://user:pass@host:5432/db"
+# STRIPE_SECRET_KEY: "sk_live_..."
+# OPENROUTER_API_KEY: "sk-or-..."
+# GEMINI_API_KEY: "AIza..."
+# HF_TOKEN: "hf_..."
+# STRIPE_SECRET_KEY: "sk_live_..."
+# STRIPE_WEBHOOK_SECRET: "whsec_..."
+# GENESIS_ADMIN_API_TOKEN: "xxx"
+# OPS_API_TOKEN: "xxx"
+# BOOKPI_INTEGRITY_SECRET: "xxx"
+# ISABELLA_APPROVAL_PRIVATE_KEY_PEM: |
+#   -----BEGIN PRIVATE KEY-----
+#   ...
+#   -----END PRIVATE KEY-----

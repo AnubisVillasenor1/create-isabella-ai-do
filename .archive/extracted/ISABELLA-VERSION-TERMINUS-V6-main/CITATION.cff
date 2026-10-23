@@ -1,0 +1,52 @@
+cff-version: 1.2.0
+message: "If you use Isabella V6 / TINA / Genesis or the GAME OVER (UAGP-1) module, please cite this work."
+title: "Isabella V6 — TINA — Genesis: Cognitive Governance Runtime and Universal Agent Governance Protocol (UAGP-1)"
+abstract: >-
+  Isabella V6 / TINA / Genesis is a governed, sovereign and auditable cognitive
+  runtime. It separates capability, authority, execution, evidence, learning and
+  production. GAME OVER (Universal Agent Governance Protocol, UAGP-1) is the
+  agent-governance meta-layer that validates AI Passport identity, trust, risk,
+  ethics, human approval and audit before a build or deploy. Identifiers:
+  ORCID 0009-0008-5050-1539; ISNI 0000 0005 3169 9229.
+type: software
+authors:
+  - family-names: Castillo Trejo
+    given-names: Edwin Oswaldo
+    alias: Anubis Villaseñor
+    orcid: "https://orcid.org/0009-0008-5050-1539"
+    affiliation: "TAMV Online Enterprise · RDM Digital Hub · Nodo Cero, Mineral del Monte (Real del Monte), Hidalgo, México"
+contact:
+  - family-names: Castillo Trejo
+    given-names: Edwin Oswaldo
+    orcid: "https://orcid.org/0009-0008-5050-1539"
+repository-code: "https://github.com/OsoPanda1/isabella-V6-TINA-h6"
+url: "https://github.com/OsoPanda1/isabella-V6-TINA-h6"
+license: MIT
+version: 0.1.0
+date-released: 2026-10-12
+keywords:
+  - AI governance
+  - agent governance
+  - UAGP-1
+  - GAME OVER
+  - AI Passport
+  - trust and risk assessment
+  - ethics engine
+  - human-in-the-loop
+  - audit ledger
+  - BookPI
+  - Jenkins
+  - TAMV
+  - RDM Digital
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20606361
+    description: "Zenodo DOI associated with the Isabella V6 / TINA / Genesis academic registry."
+references:
+  - type: generic
+    title: "GAME OVER — Universal Agent Governance Protocol (UAGP-1) canonical specification"
+    notes: "See docs/GAME_OVER_UAGP1_CANONICAL.md"
+    authors:
+      - family-names: Castillo Trejo
+        given-names: Edwin Oswaldo
+        orcid: "https://orcid.org/0009-0008-5050-1539"

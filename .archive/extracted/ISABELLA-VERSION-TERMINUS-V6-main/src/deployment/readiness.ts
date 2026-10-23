@@ -1,0 +1,3 @@
+export type ReadinessCheck="TYPECHECK"|"TESTS"|"BUILD"|"SECRETS"|"DATABASE"|"MODEL"|"OBSERVABILITY"|"ROLLBACK";
+export interface ReadinessReport{checks:Readonly<Record<ReadinessCheck,boolean>>;deployable:boolean;blockers:readonly string[];}
+export function assessReadiness(checks:Readonly<Record<ReadinessCheck,boolean>>):ReadinessReport{const blockers=(Object.entries(checks) as [ReadinessCheck,boolean][]).filter(([,ok])=>!ok).map(([k])=>k);return{checks,deployable:blockers.length===0,blockers};}

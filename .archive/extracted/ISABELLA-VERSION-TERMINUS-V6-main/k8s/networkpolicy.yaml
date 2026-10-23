@@ -1,0 +1,93 @@
+# state: draft | auto_generated — ISA-360 (P1) / ISA-368 (P0)
+#
+# Política de red "deny-by-default" + allowlist explícita.
+# Requiere un CNI que aplique NetworkPolicy (Calico/Cilium). Verificar en el
+# clúster real -> REQUIERE_VERIFICACION.
+#
+# LÍMITES HONESTOS (BLOCKED_ENVIRONMENT):
+#   - La allowlist de egress HTTPS queda PROVISIONAL en 0.0.0.0/0 (puertos 80/443).
+#     NetworkPolicy no resuelve nombres DNS: un humano debe sustituir 0.0.0.0/0 por
+#     los rangos CIDR/IP de los hosts de confianza (p. ej. Gemini API, Supabase,
+#     OTEL collector, api.tamv.network) resueltos y pinneados.
+---
+# 1) Default-deny de TODO (ingress + egress) para los pods del runtime.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isabella-genesis-default-deny
+  namespace: isabella-genesis
+spec:
+  podSelector:
+    matchLabels:
+      app: isabella-genesis
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# 2) Allow ingress: solo tráfico HTTP desde el controlador de ingress.
+# REQUIERE_VERIFICACION: ajustar namespaceSelector/podSelector al controlador real.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isabella-genesis-allow-ingress
+  namespace: isabella-genesis
+spec:
+  podSelector:
+    matchLabels:
+      app: isabella-genesis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+# 3) Allow egress DNS (resolución de cluster y de servicio).
+# REQUIERE_VERIFICACION: restringir a kube-system si el DNS del clúster lo permite.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isabella-genesis-allow-egress-dns
+  namespace: isabella-genesis
+spec:
+  podSelector:
+    matchLabels:
+      app: isabella-genesis
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# 4) Allow egress HTTPS/HTTP saliente (PROVISIONAL, ver nota superior).
+# ISA-368: sustituir 0.0.0.0/0 por allowlist de IPs/CIDR determinadas.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isabella-genesis-allow-egress-https
+  namespace: isabella-genesis
+spec:
+  podSelector:
+    matchLabels:
+      app: isabella-genesis
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80

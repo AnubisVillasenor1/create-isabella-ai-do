@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest"; import {FailingClosedAdapter} from "../../src/inference/adapters";
+describe("inference fail closed",()=>{it("rejects unavailable providers instead of fabricating output",async()=>{await expect(new FailingClosedAdapter().generate({modelId:"none",prompt:"x",maxTokens:10})).rejects.toThrow("no_inference_provider");});});

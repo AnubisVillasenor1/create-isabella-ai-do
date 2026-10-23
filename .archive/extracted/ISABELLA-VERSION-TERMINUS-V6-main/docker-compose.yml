@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: isabella-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: isabella_db
+      POSTGRES_USER: isabella_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: >
+      postgres
+      -c shared_buffers=4GB
+      -c effective_cache_size=12GB
+      -c maintenance_work_mem=1GB
+      -c work_mem=32MB
+      -c max_connections=200
+      -c wal_buffers=64MB
+      -c max_wal_size=8GB
+      -c min_wal_size=2GB
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c log_statement=none
+      -c log_min_duration_statement=1000
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isabella_admin -d isabella_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: isabella-ollama
+    restart: always
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+    environment:
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "3"
+      OLLAMA_KEEP_ALIVE: "24h"
+    deploy:
+      resources:
+        limits:
+          memory: 18G
+        reservations:
+          memory: 12G
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.96.0
+    container_name: isabella-metrics
+    restart: always
+    ports:
+      - "127.0.0.1:8428:8428"
+    volumes:
+      - vm_data:/victoria-metrics-data
+    command:
+      - --storageDataPath=/victoria-metrics-data
+      - --retentionPeriod=30d
+      - --httpListenAddr=:8428
+      - --memory.allowedPercent=60
+      - --search.maxPointsPerTimeseries=100000
+      - --maxLabelsPerTimeseries=30
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: isabella-crowdsec
+    restart: always
+    environment:
+      COLLECTIONS: "crowdsecurity/linux crowdsecurity/caddy crowdsecurity/postgres crowdsecurity/redis crowdsecurity/ssh"
+      CROWDSEC_AGENT_LDAP: "false"
+    volumes:
+      - crowdsec_config:/etc/crowdsec
+      - crowdsec_data:/var/lib/crowdsec/data
+      - /var/log:/var/log:ro
+      - /run/crowdsec:/run/crowdsec
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - caddy
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: isabella-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    environment:
+      ACME_AGREE: "true"
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.90.0
+    container_name: isabella-otel
+    restart: always
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8888:8888"
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: isabella-core
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://isabella_admin:secret@postgres:5432/isabella_db
+      OLLAMA_BASE_URL: http://ollama:11434
+      VICTORIA_METRICS_URL: http://victoriametrics:8428
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel:4318
+      CROWDSEC_LAPI_URL: http://crowdsec:8080
+      BOOKPI_LEDGER_PATH: /app/data/bookpi-ledger.jsonl
+    user: "10001:10001"
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./src:/app/src:ro
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - bookpi-data:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  ollama_storage:
+  vm_data:
+  crowdsec_config:
+  crowdsec_data:
+  caddy_data:
+  caddy_config:
+  bookpi-data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt

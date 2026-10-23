@@ -1,0 +1,220 @@
+# deploy-production.yml — cierre de aceptación ISA-325 / ISA-378.
+#
+# GATE estricto de despliegue a producción:
+#   1. `validate-source`   — valida workflow de origen, run_id y SHA.
+#   2. `secret-scan`       — gitleaks@v3 sobre el árbol completo (mismo SHA).
+#   3. `verify-artifact`   — descarga `production-evidence-<sha>`,
+#      `security-suite-<sha>` y `sbom-<sha>` del run de CI que produjo ese SHA,
+#      y FALLA si `typecheck.ok !== true`, `tests.failed > 0`, `gate.ok !== true`
+#      o si el SBOM no existe.
+#   4. `deploy`            — `environment: production` (aprobación humana se
+#      configura en el entorno de GitHub, no se puede forzar desde YAML).
+#
+# Despliegue automático: se dispara al COMPLETAR el workflow "Isabella Genesis Ω Sovereign CI"
+# (`workflow_run`). Un `push` a main no puede consumir artefactos de otro
+# run (los artefactos son por-run), por eso este gate se engancha al `run`
+# completo de CI en vez de a un segundo workflow paralelo; es la forma honesta
+# de "consumir el artefacto del run anterior con nombre por SHA".
+# Manual: `workflow_dispatch` con el `run_id` y `sha` del CI que generó la evidencia.
+#
+# Sin secretos en logs: nunca se imprime el contenido de la evidencia, sólo
+# veredictos booleanos y el SHA.
+name: Deploy Production Ω
+
+on:
+  workflow_run:
+    workflows: ["Isabella Genesis Ω Sovereign CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "GitHub Actions run ID de 'Isabella Genesis Ω Sovereign CI' que produjo la evidencia"
+        required: true
+        type: string
+      sha:
+        description: "Commit SHA asociado al run de CI"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  deployments: write
+  id-token: write
+
+concurrency:
+  group: deploy-production-${{ github.event.workflow_run.head_sha || github.event.inputs.sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate-source:
+    name: Validate workflow source, run ID and SHA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      the_sha: ${{ steps.validate.outputs.the_sha }}
+      ci_run_id: ${{ steps.validate.outputs.ci_run_id }}
+    steps:
+      - name: Validate the exact successful CI run (fail closed)
+        id: validate
+        shell: bash
+        env:
+          EXPECTED_RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || inputs.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error::Invalid CI run ID."; exit 1; }
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Invalid full commit SHA."; exit 1; }
+
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$EXPECTED_RUN_ID" > "$RUNNER_TEMP/source-run.json"
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const run = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/source-run.json", "utf8"));
+          const expectedSha = process.env.EXPECTED_SHA;
+          const expectedName = "Isabella Genesis Ω Sovereign CI";
+          const checks = {
+            correctWorkflow: run.name === expectedName,
+            successful: run.conclusion === "success",
+            mainBranch: run.head_branch === "main",
+            pushEvent: run.event === "push",
+            exactSha: run.head_sha === expectedSha,
+          };
+          for (const [name, ok] of Object.entries(checks)) console.log(name + "=" + String(ok));
+          if (Object.values(checks).some((ok) => !ok)) {
+            console.error("Deployment gate rejected the CI run. Only a successful push run for the exact SHA on main is eligible.");
+            process.exit(1);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "the_sha=" + run.head_sha + "\nci_run_id=" + run.id + "\n");
+          NODE
+          echo "Validated exact successful CI run for SHA $EXPECTED_SHA."
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: validate-source
+    steps:
+      - name: Checkout with full history (same SHA reachable)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-source.outputs.the_sha }}
+          fetch-depth: 0
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-artifact:
+    name: Verify artifacts (evidence + security + SBOM)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - validate-source
+      - secret-scan
+    env:
+      CI_RUN_ID: ${{ needs.validate-source.outputs.ci_run_id }}
+      THE_SHA: ${{ needs.validate-source.outputs.the_sha }}
+    steps:
+      - name: Download production evidence (same SHA)
+        uses: actions/download-artifact@v4
+        with:
+          name: production-evidence-${{ env.THE_SHA }}
+          path: evidence/
+          run-id: ${{ env.CI_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download security suite (same SHA)
+        uses: actions/download-artifact@v4
+        with:
+          name: security-suite-${{ env.THE_SHA }}
+          path: evidence/
+          run-id: ${{ env.CI_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download SBOM (same SHA)
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-${{ env.THE_SHA }}
+          path: evidence/
+          run-id: ${{ env.CI_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Strict gate — production evidence, security suite and SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e '
+            const fs = require("node:fs");
+            const pePath = "evidence/production-evidence.json";
+            const ssPath = "evidence/security-suite.json";
+
+            if (!fs.existsSync(pePath)) {
+              console.error("DEPLOY GATE FAILED: missing " + pePath);
+              process.exit(1);
+            }
+            const pe = JSON.parse(fs.readFileSync(pePath, "utf8"));
+            const typecheckOk = !!(pe.typecheck && pe.typecheck.ok === true);
+            const testsFailed = Number(pe.tests && pe.tests.failed) || 0;
+            const gateOk = !!(pe.gate && pe.gate.ok === true);
+            console.log("production-evidence: gate.ok=" + String(gateOk) +
+              " typecheck.ok=" + String(typecheckOk) +
+              " tests.failed=" + String(testsFailed));
+            if (!typecheckOk || testsFailed > 0 || !gateOk) {
+              console.error("DEPLOY GATE FAILED: typecheck no verde, tests fallidos o gate no ok.");
+              process.exit(1);
+            }
+            if (!fs.existsSync(ssPath)) {
+              console.error("DEPLOY GATE FAILED: missing " + ssPath);
+              process.exit(1);
+            }
+            const ss = JSON.parse(fs.readFileSync(ssPath, "utf8"));
+            const suiteOk = !!(ss.summary && ss.summary.ok === true && ss.summary.failed === 0);
+            console.log("security-suite: ok=" + String(suiteOk));
+            if (!suiteOk) {
+              console.error("DEPLOY GATE FAILED: security suite no ok.");
+              process.exit(1);
+            }
+            // SBOM check: al menos un archivo .spdx.json presente
+            const sbomFiles = fs.readdirSync("evidence").filter(f => f.endsWith(".spdx.json"));
+            if (sbomFiles.length === 0) {
+              console.error("DEPLOY GATE FAILED: no SBOM (.spdx.json) found in evidence/");
+              process.exit(1);
+            }
+            console.log("SBOM found: " + sbomFiles.join(", "));
+            console.log("DEPLOY GATE OK for " + process.env.THE_SHA);
+          '
+        env:
+          THE_SHA: ${{ env.THE_SHA }}
+
+      - name: Upload deploy evidence (same SHA)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-evidence-${{ env.THE_SHA }}
+          path: evidence/
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - validate-source
+      - secret-scan
+      - verify-artifact
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-source.outputs.the_sha }}
+
+      - name: Deployment step (evidence gate already verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deployment approval gate reached; evidence verified for ${GITHUB_SHA}."
+          echo "El despliegue real se delega al operador; nunca se imprimen secretos."

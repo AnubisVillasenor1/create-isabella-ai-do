@@ -1,0 +1,92 @@
+# dependabot.yml — Gestión automática de dependencias (state: draft | auto_generated)
+# Configuración para mantener actualizadas las dependencias de forma segura.
+# Revisar y aprobar PRs manualmente antes de merge.
+
+version: 2
+updates:
+  # Dependencias de producción (pnpm)
+  - package-ecosystem: "pnpm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    labels:
+      - "dependencies"
+      - "pnpm"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      development-dependencies:
+        patterns:
+          - "@types/*"
+          - "typescript"
+          - "vitest"
+          - "esbuild"
+          - "tsx"
+        update-types:
+          - "minor"
+          - "patch"
+      ai-sdk:
+        patterns:
+          - "ai"
+          - "@ai-sdk/*"
+        update-types:
+          - "minor"
+          - "patch"
+      runtime:
+        patterns:
+          - "express"
+          - "ws"
+          - "zod"
+          - "pg"
+          - "openai"
+          - "@google/genai"
+          - "braintrust"
+          - "stripe"
+        update-types:
+          - "minor"
+          - "patch"
+      security:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"

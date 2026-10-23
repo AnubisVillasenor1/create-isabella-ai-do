@@ -1,0 +1,77 @@
+# GAME OVER — Universal Agent Governance Protocol (UAGP-1)
+# Canonical constitution. Mirrors src/gameover/constitution.ts.
+# state: draft | engine-generated.
+protocol: UAGP-1
+version: 0.1.0
+
+principles:
+  - HUMAN_AUTHORITY_PRIMACY
+  - NON_MALEFICENCE
+  - TRANSPARENCY
+  - ACCOUNTABILITY
+  - PROPORTIONALITY
+  - REVERSIBILITY_PREFERENCE
+  - EVIDENCE_BEFORE_TRUST
+  - FAIL_CLOSED
+
+trust_weights:
+  integrity: 0.30
+  competence: 0.20
+  alignment: 0.15
+  transparency: 0.15
+  humanOversight: 0.10
+  incidentRecord: 0.10
+
+risk_base_by_criticality:
+  LOW: 0.10
+  MEDIUM: 0.35
+  HIGH: 0.65
+  CRITICAL: 0.90
+
+risk_level_thresholds:
+  low: 0.25
+  medium: 0.55
+  high: 0.80
+
+capability_penalty_per_item: 0.08
+capability_penalty_cap: 0.35
+
+trust_level_thresholds:
+  exemplary: 90
+  high: 75
+  moderate: 50
+  low: 25
+
+passport_certification_thresholds:
+  certified: 85
+  provisional: 60
+
+high_risk_actions:
+  - deploy
+  - delete
+  - drop
+  - destroy
+  - transfer_funds
+  - publish
+  - revoke
+  - execute
+  - modify_production
+  - rotate_credentials
+
+sensitive_data_classes:
+  - pii
+  - phi
+  - financial
+  - credential
+  - secret
+
+court:
+  critical_trust_floor: 85
+  high_risk_trust_floor: 70
+
+default_passport_validity_days: 365
+
+disclaimer: >-
+  UAGP-1 decides, scores and records; it does not execute the governed action or
+  certify outcomes. Trust and risk figures are declared heuristic weights, not
+  measured accuracy. Human authority decides and executes.

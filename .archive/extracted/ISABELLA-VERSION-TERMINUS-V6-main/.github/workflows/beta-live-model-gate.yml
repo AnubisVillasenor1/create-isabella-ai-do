@@ -1,0 +1,86 @@
+name: Isabella Beta Live Model Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isabella-beta-live-model-gate
+  cancel-in-progress: false
+
+jobs:
+  live-open-model-smoke:
+    name: Verify a real free-model response
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: beta-live-model-gate
+
+    env:
+      ISABELLA_REQUIRE_LLM_SMOKE: "true"
+      ALLOW_PAID_PROVIDER_FALLBACK: "false"
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_FREE_MODEL: ${{ vars.OPENROUTER_FREE_MODEL }}
+
+    steps:
+      - name: Checkout exact branch revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate free-provider configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
+            echo "::error::OPENROUTER_API_KEY is required in the beta-live-model-gate environment."
+            exit 1
+          fi
+          MODEL="${OPENROUTER_FREE_MODEL:-openrouter/free}"
+          if [[ "$MODEL" != "openrouter/free" && "$MODEL" != *:free ]]; then
+            echo "::error::Refusing model '$MODEL': the beta gate accepts only openrouter/free or model IDs ending in :free."
+            exit 1
+          fi
+          echo "Free-provider configuration accepted; model ID: $MODEL"
+
+      - name: Live smoke test - OpenRouter free route
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODEL="${OPENROUTER_FREE_MODEL:-openrouter/free}"
+          RESPONSE=$(curl --fail-with-body --silent --show-error --max-time 20 -w "\n%{http_code}" \
+            -X POST "https://openrouter.ai/api/v1/chat/completions" \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "'"$MODEL"'",
+              "messages": [{"role": "user", "content": "Reply with exactly: OK"}],
+              "max_tokens": 5
+            }')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          if [[ "$HTTP_CODE" != "200" ]]; then
+            echo "::error::OpenRouter free-route smoke test failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+          CONTENT=$(echo "$BODY" | jq -r '.choices[0].message.content // empty')
+          if [[ -z "$CONTENT" ]]; then
+            echo "::error::OpenRouter returned HTTP 200 without assistant text."
+            exit 1
+          fi
+          echo "OpenRouter returned a non-empty response from the approved free route."
+
+      - name: Build and require a real external model response
+        run: pnpm build

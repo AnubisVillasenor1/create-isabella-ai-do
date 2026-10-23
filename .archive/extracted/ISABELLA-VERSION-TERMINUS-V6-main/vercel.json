@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "corepack pnpm install --frozen-lockfile",
+  "buildCommand": "corepack pnpm run build:dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{dist/**,src/ui/**,src/assets/video/**}"
+    }
+  },
+  "rewrites": [{
+    "source": "/(.*)",
+    "destination": "/api"
+  }],
+  "headers": []
+}

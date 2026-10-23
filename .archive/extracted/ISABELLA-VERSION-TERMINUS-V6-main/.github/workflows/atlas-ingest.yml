@@ -1,0 +1,79 @@
+name: Genesis Atlas Ingest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: genesis-atlas-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ATLAS_READ_TOKEN: ${{ secrets.ATLAS_READ_TOKEN }}
+      GITHUB_OWNER: ${{ vars.GITHUB_OWNER }}
+      INCLUDE_FORKS: "false"
+      MAX_REPOS: "700"
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout GenesisAI
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies reproducibly
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Genesis before ingest
+        run: pnpm run validate
+
+      - name: Security audit (high+)
+        run: pnpm audit --audit-level high
+
+      - name: Ingest Atlas
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pnpm run ingest:atlas
+
+      - name: Configure git for Genesis bot
+        run: |
+          git config user.name "genesis-atlas-bot"
+          git config user.email "genesis-atlas-bot@users.noreply.github.com"
+
+      - name: Commit Atlas snapshot
+        run: |
+          set -euo pipefail
+          if [ ! -f "atlas/github-repositories.json" ]; then
+            echo "Atlas artifact missing"
+            exit 1
+          fi
+          git add atlas/github-repositories.json
+          if git diff --staged --quiet; then
+            echo "No Atlas changes to commit"
+            exit 0
+          fi
+          git commit -m "chore(atlas): scheduled Genesis ingest"
+
+      - name: Push Atlas snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"

@@ -1,0 +1,25 @@
+# state: draft | auto_generated — ISA-359 (P2)
+# REQUIERE_VERIFICACION: el escalado por CPU depende de metrics-server instalado
+# y de que los umbrales se validen contra carga real (ISA-363).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-genesis
+  namespace: isabella-genesis
+  labels:
+    app.kubernetes.io/name: isabella-genesisai
+    app.kubernetes.io/component: runtime
+spec:
+  minReplicas: 2
+  maxReplicas: 6
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-genesis
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60

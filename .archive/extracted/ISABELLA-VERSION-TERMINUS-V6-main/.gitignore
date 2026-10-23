@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+data/
+*.jsonl
+!fixtures/**/*.jsonl
+evidence/*.json
+artifacts/
+firebase-applet-config.json

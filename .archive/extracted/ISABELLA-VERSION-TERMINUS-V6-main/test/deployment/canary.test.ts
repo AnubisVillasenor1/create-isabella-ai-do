@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest"; import {evaluateCanary} from "../../src/deployment/canary";
+describe("canary",()=>{it("does not promote without evidence",()=>{expect(evaluateCanary([]).reason).toBe("insufficient_samples"); const obs=Array.from({length:20},(_,i)=>({requestId:String(i),variant:"canary" as const,success:true,latencyMs:100,safetyBlocks:0})); expect(evaluateCanary(obs).promoted).toBe(true);});});

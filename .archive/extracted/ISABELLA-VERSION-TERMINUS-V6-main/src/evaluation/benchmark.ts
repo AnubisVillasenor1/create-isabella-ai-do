@@ -1,0 +1,3 @@
+export interface EvalCase{id:string;prompt:string;expected?:string;tags:readonly string[];}
+export interface EvalResult{caseId:string;passed:boolean;latencyMs:number;output:string;}
+export async function runEvalSuite(suite:{cases:readonly EvalCase[]},run:(input:string)=>Promise<string>):Promise<readonly EvalResult[]>{const out:EvalResult[]=[];for(const c of suite.cases){const t=Date.now();try{const text=await run(c.prompt);out.push({caseId:c.id,passed:c.expected===undefined||text.includes(c.expected),latencyMs:Date.now()-t,output:text});}catch{out.push({caseId:c.id,passed:false,latencyMs:Date.now()-t,output:""});}}return out;}

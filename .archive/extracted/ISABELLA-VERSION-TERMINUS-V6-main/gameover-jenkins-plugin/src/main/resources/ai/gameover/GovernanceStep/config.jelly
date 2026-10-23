@@ -1,0 +1,42 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="AI Passport ID" field="passportId">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Objective title" field="objectiveTitle">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Objective description" field="objectiveDescription">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Agent ID" field="agentId">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Agent name" field="agentName">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Agent owner" field="agentOwner">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Agent organization" field="agentOrganization">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Capabilities (comma separated)" field="capabilities">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Actions (comma separated)" field="actions">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Data classes (comma separated)" field="dataClasses">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Action criticality" field="criticality">
+    <f:select/>
+  </f:entry>
+  <f:entry title="Human approver (optional)" field="humanApprover">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="Fail build when not allowed" field="failOnReject">
+    <f:checkbox default="true"/>
+  </f:entry>
+</j:jelly>

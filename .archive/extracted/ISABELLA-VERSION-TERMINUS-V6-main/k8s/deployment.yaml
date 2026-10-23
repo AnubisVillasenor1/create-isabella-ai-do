@@ -1,0 +1,125 @@
+# state: draft | auto_generated — Cluster E
+# ISA-355 (P0)  digest pin ............ PENDIENTE/BLOCKED_ENVIRONMENT (registry real)
+# ISA-356 (P1)  readiness ............ /api/v1/health (verificado en src/server.ts:388)
+# ISA-357 (P2)  liveness ............. /health        (verificado en src/server.ts:378)
+# ISA-361 (P1)  service account ...... isabella-genesis (dedicada, token no montado)
+# ISA-362 (P0)  secret refs .......... envFrom.secretRef (sin literales)
+# ISA-363 (P1)  resource limits ...... requests/limits declarados (validar vs benchmark)
+# ISA-364 (P2)  topology spread ...... por kubernetes.io/hostname
+# ISA-365 (P2)  priority class ....... isabella-genesis-critical
+# ISA-366 (P1)  security context ..... runAsNonRoot/drop ALL/readOnlyRootFilesystem
+# ISA-367 (P1)  seccomp .............. RuntimeDefault
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-genesis
+  namespace: isabella-genesis
+  labels:
+    app.kubernetes.io/name: isabella-genesisai
+    app.kubernetes.io/component: runtime
+    app.kubernetes.io/part-of: tamv
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: isabella-genesis
+  template:
+    metadata:
+      labels:
+        app: isabella-genesis
+        deployment: isabella-genesis
+    spec:
+      serviceAccountName: isabella-genesis
+      automountServiceAccountToken: false
+      priorityClassName: isabella-genesis-critical
+      # ISA-366: seguridad a nivel de pod.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        # ISA-367: perfil seccomp. Verificar aplicación real en runtime (RV).
+        seccompProfile:
+          type: RuntimeDefault
+      # ISA-364: repartir réplicas entre nodos (dominios de fallo).
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: isabella-genesis
+      containers:
+        - name: runtime
+          # ISA-355 (P0): reemplazar tag por digest inmutable.
+          #   BLOCKED_ENVIRONMENT -> registry real del cliente (ECR/Harbor/GHCR).
+          #   Sustituir por:  <REGISTRY_REAL>/<REPO>@sha256:<DIGEST_RESUELTO>
+          #   imagePullPolicy: IfNotPresent mientras se resuelve el digest.
+          image: ghcr.io/tamv-online/isabella-genesisai:v40.0.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+          # ISA-362 (P0): SOLO referencias. Nunca valores literales en el repo.
+          # El Secret lo aprovisiona un gestor externo (KMS / External Secrets /
+          # Sealed Secrets). Ver k8s/sealed-secret-example.yaml y docs/deployment/README.md.
+          envFrom:
+            - secretRef:
+                name: isabella-genesis-secrets
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          # ISA-357 (P2): liveness independiente de caídas de dependencias externas.
+          # /health es un endpoint estático (src/server.ts:378).
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # ISA-356 (P1): readiness contra endpoint público verificado
+          # (GET /api/v1/health, src/server.ts:388). El endpoint de readiness
+          # PROFUNDA de dependencias ahora existe: GET /api/v1/healthz evalúa
+          # configuración/local-IO real y responde 503 hasta que toda dependencia
+          # requerida esté sana. Se mantiene readiness contra /api/v1/health para
+          # no bloquear pods por dependencias externas aún no verificadas; apuntar
+          # a /api/v1/healthz cuando el Secret y los adaptadores estén listos.
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # ISA-363 (P1): valores iniciales conservadores.
+          # REQUIERE_VERIFICACION: validar contra benchmarks de carga reales.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          # ISA-366: seguridad a nivel de contenedor.
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            # Verificado: el runtime no escribe en disco (BookPI usa el ledger
+            # en memoria; solo lee src/styles/crystal-clear.css). Ver README.
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL

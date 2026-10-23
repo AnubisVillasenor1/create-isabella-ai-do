@@ -1,0 +1,17 @@
+authorized_sources:
+  - name: local_curated_datasets
+    path: ./data/
+    license: operator-declared
+    categories: all
+    enabled: true
+  - name: wikcionario_es
+    url: https://es.wiktionary.org/
+    license: CC-BY-SA
+    categories: [jerga, regionalismo, dicho]
+    enabled: false
+
+governance:
+  ingestion_mode: authorized_only
+  adult_content_policy: metadata_only
+  deduplication: sha256
+  traceability: full

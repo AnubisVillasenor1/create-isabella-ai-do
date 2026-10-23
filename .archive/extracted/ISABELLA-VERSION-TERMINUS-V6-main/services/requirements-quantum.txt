@@ -1,0 +1,3 @@
+# Optional quantum bridge dependencies for Isabella GenesisAI
+pennylane>=0.45,<0.47
+pennylane-catalyst>=0.15,<0.17

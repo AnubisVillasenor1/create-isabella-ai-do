@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {GovernedInferenceRouter} from "../../src/inference/router";
+describe("inference router",()=>{it("routes to a registered adapter and enforces token budget",async()=>{const r=new GovernedInferenceRouter();r.register({descriptor:{id:"m1",version:"1",provider:"test",capabilities:["chat"],contextWindow:4096,maxOutputTokens:100,latencyClass:"FAST"},generate:async q=>({modelId:"m1",text:q.prompt,inputTokens:1,outputTokens:1,latencyMs:1,finishReason:"stop"})});expect((await r.generate({prompt:"x",maxTokens:5})).modelId).toBe("m1");await expect(r.generate({prompt:"x",maxTokens:101})).rejects.toThrow(/token budget/);});});

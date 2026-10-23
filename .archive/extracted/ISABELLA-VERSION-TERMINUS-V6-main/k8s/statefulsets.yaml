@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: isabella-config
+  namespace: isabella-genesis
+data:
+  NODE_ENV: "production"
+  STRICT_PREFLIGHT: "1"
+  APP_PUBLIC_URL: "https://isabella.tamvonline.net"
+  BOOKPI_LEDGER_PATH: "/data/bookpi/ledger.jsonl"
+  GAMEOVER_PASSPORT_PATH: "/data/gameover/passports.json"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: isabella-postgres
+  namespace: isabella-genesis
+spec:
+  serviceName: isabella-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: isabella-postgres
+  template:
+    metadata:
+      labels:
+        app: isabella-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: isabella
+            - name: POSTGRES_USER
+              value: isabella
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: isabella-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-postgres
+  namespace: isabella-genesis
+spec:
+  clusterIP: None
+  selector:
+    app: isabella-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: isabella-redis
+  namespace: isabella-genesis
+spec:
+  serviceName: isabella-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: isabella-redis
+  template:
+    metadata:
+      labels:
+        app: isabella-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redisdata
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: redisdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-redis
+  namespace: isabella-genesis
+spec:
+  clusterIP: None
+  selector:
+    app: isabella-redis
+  ports:
+    - port: 6379
+      targetPort: 6379

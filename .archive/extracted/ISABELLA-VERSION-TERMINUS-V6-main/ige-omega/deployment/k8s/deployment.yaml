@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ige-omega-gateway
+  namespace: isabella-ige-omega
+  labels: {app: ige-omega-gateway}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: ige-omega-gateway}}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  template:
+    metadata: {labels: {app: ige-omega-gateway}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: gateway
+          image: ghcr.io/osopanda1/isabella-v6-tina/ige-gateway:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          envFrom: [{configMapRef: {name: ige-omega-config}}]
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: ige-omega-secrets, key: database-url}}
+            - name: IGE_API_TOKENS
+              valueFrom: {secretKeyRef: {name: ige-omega-secrets, key: api-tokens}}
+          resources:
+            requests: {cpu: "100m", memory: "128Mi"}
+            limits: {cpu: "1000m", memory: "512Mi"}
+          startupProbe: {httpGet: {path: /health, port: http}, periodSeconds: 5, failureThreshold: 24}
+          livenessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 10, timeoutSeconds: 2}
+          readinessProbe: {httpGet: {path: /ready, port: http}, periodSeconds: 5, timeoutSeconds: 3}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}

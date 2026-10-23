@@ -1,0 +1,10 @@
+# state: draft | auto_generated — ISA-365 (P2)
+# Prioridad del runtime crítico. Valor por encima del default (0) y por debajo de
+# las clases system-* del clúster. Ajustar según política de scheduling del entorno.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: isabella-genesis-critical
+value: 50000
+globalDefault: false
+description: "Runtime cognitivo gobernado Isabella GenesisAI (Nodo Cero / TAMV)."

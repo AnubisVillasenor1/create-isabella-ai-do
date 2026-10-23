@@ -1,0 +1,1393 @@
+# ISABELLA HYPERCORE Ω — Distributed Skill Execution Runtime (TINA-h7)
+
+> **Estado:** draft | engine-generated — not applied to any cluster by this repo.  
+> **Alcance:** Runtime distribuido de ejecución de skills para Isabella Ω∞ / TAMV.  
+> **Principios:** un pod ejecuta una capacidad; NetworkPolicies segmentan cada skill; cada workload declara startup, readiness y liveness probes, HPA y PDB; ningún contenedor corre como root ni tiene filesystem raíz escribible.
+
+---
+
+## Índice
+
+1. [Namespace y cuotas](#namespace-y-cuotas)
+2. [ConfigMap y Secret](#configmap-y-secret)
+3. [ServiceAccounts y PriorityClasses](#serviceaccounts-y-priorityclasses)
+4. [Router — ingress único al skill fabric](#router--ingress-único-al-skill-fabric)
+5. [skill-ingestion](#skill-ingestion--sovereign_ingestion_pipeline)
+6. [skill-royalties](#skill-royalties--bookpi_royalty_distribution)
+7. [skill-quality](#skill-quality--quality_gate_arbiter)
+8. [skill-deployment](#skill-deployment--deployment_readiness_arbiter)
+9. [skill-territorial](#skill-territorial--territorial_library_synthesis)
+10. [skill-evidence](#skill-evidence--evidence_manifest_seal)
+
+---
+
+## Namespace y cuotas
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: isabella-hypercore
+  labels:
+    app.kubernetes.io/part-of: isabella-tina-h7
+    tamv.io/sovereign: "true"
+    pod-security.kubernetes.io/enforce: restricted
+***
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: hypercore-quota
+  namespace: isabella-hypercore
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 8Gi
+    limits.cpu: "16"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "10"
+***
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: hypercore-limits
+  namespace: isabella-hypercore
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "250m"
+        memory: "256Mi"
+```
+
+---
+
+## ConfigMap y Secret
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: isabella-runtime-config
+  namespace: isabella-hypercore
+data:
+  BOOKPI_ENDPOINT: "[https://bookpi.isabella-hypercore.svc.cluster.local:8443](https://bookpi.isabella-hypercore.svc.cluster.local:8443)"
+  CROWN_ENDPOINT: "[https://crown.isabella-hypercore.svc.cluster.local:8443](https://crown.isabella-hypercore.svc.cluster.local:8443)"
+  MCP_REGISTRY_ENDPOINT: "[https://mcp-registry.isabella-hypercore.svc.cluster.local:8443](https://mcp-registry.isabella-hypercore.svc.cluster.local:8443)"
+  POLICY_VERSION: "CROWN-v20"
+  EXECUTION_MODE: "FAIL_CLOSED"
+***
+# NOTE: En producción, reemplazar este Secret por ExternalSecret / SealedSecret.
+# Nunca commitear claves reales en el repo.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: isabella-hypercore-signing
+  namespace: isabella-hypercore
+type: Opaque
+stringData:
+  HYPERCORE_SIGNING_KEY: "REPLACE_WITH_KMS_MANAGED_SECRET"
+```
+
+---
+
+## ServiceAccounts y PriorityClasses
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hypercore-router-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-ingestion-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-royalties-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-quality-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-deployment-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-territorial-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skill-evidence-sa
+  namespace: isabella-hypercore
+automountServiceAccountToken: false
+***
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: hypercore-critical
+value: 1000000
+globalDefault: false
+description: "Critical workloads for Isabella HyperCore"
+***
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: hypercore-normal
+value: 100000
+globalDefault: false
+description: "Normal workloads for Isabella HyperCore"
+```
+
+---
+
+## Router — ingress único al skill fabric
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-hypercore-router
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-hypercore-router
+    app.kubernetes.io/part-of: isabella-tina-h7
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-hypercore-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-hypercore-router
+        app.kubernetes.io/part-of: isabella-tina-h7
+    spec:
+      serviceAccountName: hypercore-router-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-critical
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      containers:
+        - name: hypercore-router
+          image: ghcr.io/tamv/isabella-hypercore-router:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: BOOKPI_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: BOOKPI_ENDPOINT
+            - name: CROWN_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: CROWN_ENDPOINT
+            - name: MCP_REGISTRY_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: MCP_REGISTRY_ENDPOINT
+            - name: POLICY_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: POLICY_VERSION
+            - name: HYPERCORE_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: isabella-hypercore-signing
+                  key: HYPERCORE_SIGNING_KEY
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-hypercore-router
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-hypercore-router
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-hypercore-router
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-hypercore-router
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-hypercore-router
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-hypercore-router
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: isabella-hypercore
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hypercore-router-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-hypercore-router
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: isabella-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-crown
+      ports:
+        - protocol: TCP
+          port: 8443
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: isabella-skill
+      ports:
+        - protocol: TCP
+          port: 8080
+```
+
+---
+
+## skill-ingestion — sovereign_ingestion_pipeline
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-ingestion
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-ingestion
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: sovereign_ingestion_pipeline
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-ingestion
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-ingestion
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-ingestion-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-normal
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10002
+        runAsGroup: 10002
+        fsGroup: 10002
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-skill-ingestion
+      containers:
+        - name: skill-ingestion
+          image: ghcr.io/tamv/isabella-skill-ingestion:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BOOKPI_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: BOOKPI_ENDPOINT
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "750m"
+              memory: "512Mi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-ingestion
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-ingestion
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-skill-ingestion
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-skill-ingestion
+  minReplicas: 2
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-ingestion
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-ingestion
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-ingestion-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-ingestion
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## skill-royalties — bookpi_royalty_distribution
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-royalties
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-royalties
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: bookpi_royalty_distribution
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-royalties
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-royalties
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-royalties-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-normal
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        runAsGroup: 10003
+        fsGroup: 10003
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: skill-royalties
+          image: ghcr.io/tamv/isabella-skill-royalties:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BOOKPI_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: BOOKPI_ENDPOINT
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-royalties
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-royalties
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-royalties
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-royalties
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-royalties-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-royalties
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## skill-quality — quality_gate_arbiter
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-quality
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-quality
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: quality_gate_arbiter
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-quality
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-quality
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-quality-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-normal
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        runAsGroup: 10003
+        fsGroup: 10003
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-skill-quality
+      containers:
+        - name: skill-quality
+          image: ghcr.io/tamv/isabella-skill-quality:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-quality
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-quality
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-skill-quality
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-skill-quality
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-quality
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-quality
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-quality-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-quality
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## skill-deployment — deployment_readiness_arbiter
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-deployment
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-deployment
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: deployment_readiness_arbiter
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-deployment
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-deployment
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-deployment-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-critical
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        runAsGroup: 10003
+        fsGroup: 10003
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-skill-deployment
+      containers:
+        - name: skill-deployment
+          image: ghcr.io/tamv/isabella-skill-deployment:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: CROWN_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: CROWN_ENDPOINT
+            - name: POLICY_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: POLICY_VERSION
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1500m"
+              memory: "1Gi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-deployment
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-deployment
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-skill-deployment
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-skill-deployment
+  minReplicas: 3
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-deployment
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-deployment
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-deployment-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-deployment
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-crown
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## skill-territorial — territorial_library_synthesis
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-territorial
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-territorial
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: territorial_library_synthesis
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-territorial
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-territorial
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-territorial-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-normal
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10002
+        runAsGroup: 10002
+        fsGroup: 10002
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-skill-territorial
+      containers:
+        - name: skill-territorial
+          image: ghcr.io/tamv/isabella-skill-territorial:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "125m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "384Mi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-territorial
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-territorial
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-skill-territorial
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-skill-territorial
+  minReplicas: 2
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-territorial
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-territorial
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-territorial-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-territorial
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## skill-evidence — evidence_manifest_seal
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isabella-skill-evidence
+  namespace: isabella-hypercore
+  labels:
+    app.kubernetes.io/name: isabella-skill-evidence
+    app.kubernetes.io/part-of: isabella-skill
+    tamv.io/skill-id: evidence_manifest_seal
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-evidence
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: isabella-skill-evidence
+        app.kubernetes.io/part-of: isabella-skill
+    spec:
+      serviceAccountName: skill-evidence-sa
+      automountServiceAccountToken: false
+      priorityClassName: hypercore-normal
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10003
+        runAsGroup: 10003
+        fsGroup: 10003
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-skill-evidence
+      containers:
+        - name: skill-evidence
+          image: ghcr.io/tamv/isabella-skill-evidence:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BOOKPI_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: isabella-runtime-config
+                  key: BOOKPI_ENDPOINT
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+***
+apiVersion: v1
+kind: Service
+metadata:
+  name: isabella-skill-evidence
+  namespace: isabella-hypercore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: isabella-skill-evidence
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+***
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: isabella-skill-evidence
+  namespace: isabella-hypercore
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: isabella-skill-evidence
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+***
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-skill-evidence
+  namespace: isabella-hypercore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-evidence
+***
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: skill-evidence-policy
+  namespace: isabella-hypercore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: isabella-skill-evidence
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-hypercore-router
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: isabella-bookpi
+      ports:
+        - protocol: TCP
+          port: 8443
+```
+
+---
+
+## Notas de seguridad y gobernanza
+
+- **Secret externo:** el `Secret` con `stringData` es solo para draft; en producción usar External Secrets Operator o Sealed Secrets.
+- **Default‑deny:** la NetworkPolicy `default-deny-all` garantiza fail‑closed real.
+- **HA real:** `topologySpreadConstraints` + PDB + réplicas mínimas aseguran disponibilidad.
+- **Observabilidad:** añadir `PodMonitor`/`ServiceMonitor` de Prometheus cuando se integre el stack de observabilidad.
+- **Gobernanza:** considerar políticas de admisión (Kyverno/OPA) para validar labels, recursos y securityContext.
+
+---
+
+## Cláusula de continuidad
+
+Este manifiesto forma parte del ecosistema Isabella Ω∞ / TAMV. Su carácter es draft/engine‑generated; no se aplica a ningún cluster desde este repo. Toda evolución posterior debe entenderse como expansión coherente del mismo linaje documental.

@@ -1,0 +1,15 @@
+# state: draft | auto_generated — ISA-358 (P2)
+# Disponibilidad mínima durante disrupciones voluntarias (drain/upgrade).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: isabella-genesis
+  namespace: isabella-genesis
+  labels:
+    app.kubernetes.io/name: isabella-genesisai
+    app.kubernetes.io/component: runtime
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: isabella-genesis

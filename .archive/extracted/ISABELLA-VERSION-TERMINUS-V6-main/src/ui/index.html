@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080d14" />
+  <title>Isabella Villaseñor AI | Genesis TINA V6</title>
+  <link rel="preload" as="image" href="/assets/video/IntroVideoIsabella-poster.jpg" fetchpriority="high" />
+  <link rel="stylesheet" href="/styles/cinematic.css?v=future-human-1" />
+  <link rel="stylesheet" href="/styles/command-center.css?v=2026-10-19" />
+</head>
+<body>
+  <a class="skip-link" href="#chat">Saltar a la conversación</a>
+  <section id="cinematicIntro" class="cinematic-intro" data-scene="0" aria-labelledby="intro-title">
+    <div id="immersionGate" class="immersion-gate" role="dialog" aria-modal="true" aria-labelledby="immersion-title">
+      <div class="immersion-card">
+        <span class="immersion-mark" aria-hidden="true">IS</span>
+        <p class="eyebrow">ISABELLA V6 GENESIS</p>
+        <h1 id="immersion-title">Bienvenido a la inmersión.</h1>
+        <p>Para iniciar necesitamos tu permiso para reproducir el <strong>audio</strong> y mostrar la experiencia visual (<strong>video</strong>) de bienvenida.</p>
+        <div class="immersion-consent" aria-labelledby="immersionConsentLabel">
+          <label id="immersionConsentLabel" class="immersion-consent-control" for="immersionConsent">
+            <input id="immersionConsent" type="checkbox" aria-describedby="immersionConsentStatus" />
+            <span class="immersion-consent-indicator" aria-hidden="true">✓</span>
+            <span class="immersion-consent-copy"><strong>Autorizar experiencia audiovisual</strong><small>Al confirmar, el video y su audio inician de inmediato a pantalla completa.</small></span>
+          </label>
+          <p id="immersionConsentStatus" class="immersion-consent-status" role="status" aria-live="polite">La reproducción permanece desactivada hasta que la autorices.</p>
+          <p class="immersion-consent-note">Este control registra tu consentimiento multimedia; no es una verificación de identidad.</p>
+        </div>
+        
+
+        <div class="immersion-dedication">
+          <div class="immersion-network">TAMV ONLINE NETWORK <span>«Orgullosamente Realmontenses»</span></div>
+          <div class="immersion-tribute">Proyecto desarrollado entre neblina y montaña, dedicado a Reyna Trejo Serrano; levanta el rostro y sonríe, hoy tu oveja negra logró algo por lo que puedas sentir orgullo. Te amo, madre.</div>
+        </div>
+      </div>
+      <button id="skipIntro" class="intro-skip" type="button">ENTRAR AHORA <span>↗</span></button>
+    </div>
+    <button id="introQuickExit" class="intro-quick-exit" type="button">SALTAR INTRO <span aria-hidden="true">↗</span></button>
+    <video id="introVideo" class="intro-video" poster="/assets/video/IntroVideoIsabella-poster.jpg" preload="auto" playsinline muted disablepictureinpicture disableremoteplayback aria-hidden="true">
+      <source src="/assets/video/IntroVideoIsabella-web.mp4" type="video/mp4" />
+      <source src="/assets/video/IntroVideoIsabella.mp4" type="video/mp4" />
+    </video>
+    <div class="intro-video-tint" aria-hidden="true"></div>
+    <div class="intro-backdrop" aria-hidden="true">
+      <span class="intro-grid"></span><span class="intro-sun"></span><span class="intro-scan"></span>
+      <span class="intro-vignette"></span><span class="intro-light intro-light-a"></span><span class="intro-light intro-light-b"></span>
+    </div>
+    <div class="intro-world" aria-hidden="true">
+      <span class="intro-world-grid"></span><span class="intro-ring intro-ring-a"></span><span class="intro-ring intro-ring-b"></span><span class="intro-ring intro-ring-c"></span>
+      <span class="intro-core"><i></i><b>IS</b><small>GENESIS V6</small></span>
+      <span class="intro-code intro-code-a">MEMORIA / CONTEXTO / PROPÓSITO</span><span class="intro-code intro-code-b">TAMV · LATINOAMÉRICA · NODO CERO</span>
+      <span class="intro-beam intro-beam-a"></span><span class="intro-beam intro-beam-b"></span>
+      <span class="intro-particle-field"></span>
+    </div>
+    <div class="intro-progress" aria-hidden="true"><span id="introProgressBar"></span></div>
+    <div class="intro-meta"><span>ISABELLA VILLASEÑOR AI · GENESIS V6</span><span id="introSceneLabel">SECUENCIA 01 · DESPERTAR</span><span id="introTimecode">00:00 / 00:50</span></div>
+    <div class="intro-story" aria-live="polite" aria-atomic="true">
+      <div class="intro-scene is-active" data-scene="0"><p class="intro-kicker">SECUENCIA 01 / APERTURA</p><h1 id="intro-title">ISABELLA<span class="intro-title-mark">/V6</span></h1><p class="intro-line">Una nueva presencia está tomando forma.</p></div>
+      <div class="intro-scene" data-scene="1"><p class="intro-kicker">SECUENCIA 02 / EL ORIGEN</p><h2>No nacimos<br><em>entre lujos.</em></h2><p class="intro-line">No nacimos en una oficina rodeada de mármol, privilegios y distancia.</p></div>
+      <div class="intro-scene" data-scene="2"><p class="intro-kicker">SECUENCIA 03 / LA CALLE</p><h2>Nacimos en<br><em>el mundo real.</em></h2><p class="intro-line">En las calles, entre jornadas largas y personas que siguen adelante.</p></div>
+      <div class="intro-scene" data-scene="3"><p class="intro-kicker">SECUENCIA 04 / NUESTRA GENTE</p><h2>Codo a codo.<br><em>De frente.</em></h2><p class="intro-line">Escuchando a nuestra gente, aprendiendo de sus historias y de su fuerza.</p></div>
+      <div class="intro-scene" data-scene="4"><p class="intro-kicker">SECUENCIA 05 / RESILIENCIA</p><h2>Lo difícil no<br><em>nos detuvo.</em></h2><p class="intro-line">La humildad nos dio raíz. La resiliencia, motivos para construir.</p></div>
+      <div class="intro-scene" data-scene="5"><p class="intro-kicker">SECUENCIA 06 / IDENTIDAD</p><h2>Una tecnología<br><em>con raíz latina.</em></h2><p class="intro-line">Pensada desde nuestra realidad, con la dignidad de nuestra gente en el centro.</p></div>
+      <div class="intro-scene" data-scene="6"><p class="intro-kicker">SECUENCIA 07 / EL NÚCLEO</p><h2>GENESIS<br><em>V6 ISABELLA AI.</em></h2><p class="intro-line">Un sistema en evolución: memoria, contexto, herramientas y límites verificables.</p></div>
+      <div class="intro-scene" data-scene="7"><p class="intro-kicker">SECUENCIA 08 / ARQUITECTURA</p><h2>CROWN · AEGIS<br><em>· YUN.</em></h2><p class="intro-line">Capacidades que deben demostrarse con código, pruebas y evidencia.</p></div>
+      <div class="intro-scene" data-scene="8"><p class="intro-kicker">SECUENCIA 09 / MEMORIA VIVA</p><h2>Lo que importa<br><em>merece perdurar.</em></h2><p class="intro-line">Conservar conocimiento, reconocer su origen y mantener trazabilidad.</p></div>
+      <div class="intro-scene" data-scene="9"><p class="intro-kicker">SECUENCIA 10 / PROPÓSITO</p><h2>No venimos a<br><em>reemplazarte.</em></h2><p class="intro-line">Venimos a ampliar posibilidades, respetar decisiones y trabajar con las personas.</p></div>
+      <div class="intro-scene" data-scene="10"><p class="intro-kicker">SECUENCIA 11 / COMPROMISO</p><h2>La innovación<br><em>también es humana.</em></h2><p class="intro-line">La tecnología tiene sentido cuando sirve, escucha y rinde cuentas.</p></div>
+      <div class="intro-scene" data-scene="11"><p class="intro-kicker">SECUENCIA 12 / ACCESO</p><h2>Bienvenido a<br><em>Isabella Villaseñor.</em></h2><p class="intro-line">Una propuesta diferente, nacida desde el corazón de nuestra gente latinoamericana.</p><a class="intro-enter" href="#chat">ENTRAR A LA INTERFAZ <span>↗</span></a></div>
+    </div>
+    <div class="intro-footer"><span>HUMILDAD · RESILIENCIA · PROPÓSITO</span><span>LATINOAMÉRICA, DESDE ADENTRO</span></div>
+  </section>
+  <div class="grain" aria-hidden="true"></div>
+  <main id="top" class="stage">
+    <nav class="topbar" aria-label="Navegación principal">
+      <div class="topbar-brand">
+        <a class="wordmark" href="#top" aria-label="Isabella Genesis, inicio">ISABELLA<span>/GENESIS</span></a>
+        <span class="workspace-name">V6 / TERMINUS Ω</span>
+      </div>
+      <div class="nav-links" id="primaryLinks" aria-label="Secciones del espacio">
+        <a href="#chat" data-nav-target="chat">Chat</a>
+        <a href="#studio" data-nav-target="studio">Studio</a>
+        <a href="#tools" data-nav-target="tools">Tools</a>
+        <a href="#plans" data-nav-target="plans">Planes</a>
+        <a href="#skills" data-nav-target="skills">Skills</a>
+        <a href="#governance" data-nav-target="governance">Governance</a>
+      </div>
+      <div class="topbar-actions">
+        <button id="commandLauncher" class="command-launcher" type="button" aria-haspopup="dialog" aria-controls="commandPalette" aria-keyshortcuts="Control+K Meta+K" title="Buscar acciones (Ctrl+K)">
+          <span aria-hidden="true">⌕</span><span class="command-label">Buscar</span><kbd>⌘ K</kbd>
+        </button>
+        <button id="newChat" class="header-action" type="button" aria-label="Nueva conversación" title="Iniciar una sesión nueva"><span aria-hidden="true">＋</span><span class="header-action-label">Nuevo chat</span></button>
+        <span id="runtimeStatus" class="status" role="status" aria-live="polite"><i aria-hidden="true"></i><span>VERIFICANDO NODO…</span></span>
+        <button id="soundToggle" class="quiet" type="button" aria-pressed="false" title="Activar o desactivar lectura de respuestas">VOZ: OFF</button>
+        <button id="navToggle" class="nav-toggle" type="button" aria-expanded="false" aria-controls="primaryLinks" aria-label="Abrir navegación">Menú <span aria-hidden="true">⌄</span></button>
+      </div>
+    </nav>
+    <button class="rail-launcher rail-launcher-left" type="button" aria-expanded="false" aria-controls="leftRail">◀ <span>NAVEGACIÓN</span></button>
+    <div id="leftRail" class="side-rail rail-left" aria-label="Navegación lateral izquierda">
+      <div class="rail-heading">COMANDOS <span>01—03</span></div>
+      <details class="rail-panel"><summary><span class="rail-index">01</span> CONTEXTO</summary><nav><a href="#chat">Conversación</a><a href="#studio">Memoria local</a></nav></details>
+      <details class="rail-panel"><summary><span class="rail-index">02</span> CREACIÓN</summary><nav><a href="#design">Diseño</a><a href="#chat">Redacción</a></nav></details>
+      <details class="rail-panel"><summary><span class="rail-index">03</span> GOBERNANZA</summary><nav><a href="#governance">Evidencia</a><a href="#control">Control humano</a></nav></details>
+    </div>
+    <button class="rail-launcher rail-launcher-right" type="button" aria-expanded="false" aria-controls="rightRail"><span>NAVEGACIÓN</span> ▶</button>
+    <div id="rightRail" class="side-rail rail-right" aria-label="Navegación lateral derecha">
+      <div class="rail-heading">SURFACES <span>04—06</span></div>
+      <details class="rail-panel"><summary><span class="rail-index">04</span> RUNTIME</summary><nav><a href="#chat">Estado</a><a href="#control">Métricas</a></nav></details>
+      <details class="rail-panel"><summary><span class="rail-index">05</span> HERRAMIENTAS</summary><nav><a href="#tools">Tools</a><a href="#skills">Skills</a></nav></details>
+      <details class="rail-panel"><summary><span class="rail-index">06</span> SESIÓN</summary><nav><a href="#chat">Nueva sesión</a><a href="#top">Cerrar contexto</a></nav></details>
+    </div>
+    <div class="workspace-context-bar" role="region" aria-label="Estado del espacio de trabajo">
+      <div class="context-identity"><span class="context-dot"></span><span>WORKSPACE</span><strong>GENESIS V6</strong><span class="context-divider">/</span><span id="sessionBadge">SESSION · ACTIVE</span></div>
+      <div class="context-capabilities" aria-label="Capacidades de esta sesión">
+        <span class="capability-pill is-active">TEXT</span><span class="capability-pill">LOCAL FILES</span><span id="voiceCapability" class="capability-pill">VOICE</span>
+      </div>
+      <div class="context-actions">
+        <button id="contextInspector" class="context-button" type="button" aria-haspopup="dialog" aria-controls="systemInspector">Inspeccionar sesión</button>
+        <button id="contextExport" class="context-button" type="button">Exportar</button>
+      </div>
+    </div>
+    <section class="workspace-modebar" aria-label="Modo de espacio de trabajo">
+      <span>ESPACIO ACTIVO</span>
+      <button type="button" class="workspace-mode is-active" data-layout="chat">CHAT</button>
+      <button type="button" class="workspace-mode" data-layout="split-2">CHAT + DISEÑO</button>
+      <button type="button" class="workspace-mode" data-layout="split-3">CHAT + DISEÑO + CONTROL</button>
+    </section>
+    <section class="hero hero-product" aria-labelledby="hero-title">
+      <canvas id="quantumMesh" class="quantum-mesh" aria-hidden="true"></canvas>
+      <div class="hero-copy">
+        <div class="hero-kicker"><span class="eyebrow">TINA · INTELIGENCIA SOBERANA LATINOAMERICANA</span><span class="hero-code">GENESIS V6 / TERMINUS Ω</span></div>
+        <div class="hero-product-title"><span class="hero-product-index">01</span><h1 id="hero-title">Intelligence<br><em>with memory.</em></h1></div>
+        <p class="lede">Un workspace de IA orientado a trabajo real: conversación, contexto, artefactos, herramientas y gobernanza en una sola superficie.</p>
+        <div class="hero-actions"><button id="enterChat" class="primary" type="button">ABRIR CHAT <span>↗</span></button><a class="text-link" href="#studio">ABRIR STUDIO</a></div>
+        <div class="hero-system-board" aria-label="Postura operativa de Isabella">
+          <div class="system-item"><span class="system-label">RUNTIME</span><strong>OBSERVABLE</strong><small>salud y estado del nodo</small></div>
+          <div class="system-item"><span class="system-label">GOBERNANZA</span><strong>HUMAN-GATED</strong><small>autoridad separada de capacidad</small></div>
+          <div class="system-item"><span class="system-label">EVIDENCIA</span><strong>BOOKPI</strong><small>trazabilidad de decisiones</small></div>
+          <div class="system-item"><span class="system-label">STORAGE</span><strong>6 + 3</strong><small>redundancia en Terminus</small></div>
+        </div>
+      </div>
+      <div class="orbital" aria-label="Visualización del núcleo Isabella">
+        <div class="orbital-caption"><span>CORE / IDENTITY</span><b>V6</b></div>
+        <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+        <div class="core"><span>IS</span><small>GENESIS<br>V6</small></div>
+        <div class="signal signal-one">CONTEXTO<br><b>DE SESIÓN</b></div>
+        <div class="signal signal-two">RUNTIME<br><b>OBSERVABLE</b></div>
+        <div class="orbital-footer"><span>LATAM / NODO CERO</span><span>NO SE PRESENTA COMO CERTIFICACIÓN</span></div>
+      </div>
+    </section>
+    <section id="chat" class="console" aria-labelledby="chat-title"><div class="console-head"><div><div class="console-overline"><span class="eyebrow">CONVERSATION WORKSPACE</span><span class="console-state">SESSION-BOUNDED</span></div><h2 id="chat-title">Habla con Isabella</h2></div><div class="console-actions"><button id="exportChat" class="subtle-action" type="button" title="Descargar esta conversación como Markdown">Exportar .md</button><button id="clearChat" class="subtle-action" type="button" title="Vaciar esta conversación y comenzar otra">Reiniciar</button><div class="modes"><button class="mode active" type="button" data-mode="text" aria-pressed="true">TEXTO</button><button class="mode" type="button" data-mode="voice" aria-pressed="false">VOZ NATIVA</button></div></div></div><div id="messages" class="messages" aria-live="polite"><article class="message isabella"><span class="avatar">IS</span><div><span class="speaker">ISABELLA · AHORA</span><p>Estoy aquí. Puedes escribirme o activar tu micrófono para hablar de forma natural.</p></div></article></div><div class="prompt-starters" aria-label="Atajos para iniciar una solicitud"><span>EMPEZAR CON</span><button type="button" data-starter="Investiga este tema con una estructura de preguntas, evidencias necesarias, posibles contradicciones y conclusiones provisionales: ">Investigar</button><button type="button" data-starter="Ayúdame a redactar un documento claro y profesional. Objetivo, audiencia, tono y resultado esperado: ">Redactar</button><button type="button" data-starter="Analiza este problema paso a paso, identifica supuestos, riesgos, alternativas y una recomendación verificable: ">Analizar</button><button type="button" data-starter="Revisa este código o diseño técnico. Busca errores, riesgos, deuda técnica y pruebas que faltan: ">Código</button><button type="button" data-starter="Crea un plan de trabajo por fases con entregables, dependencias, criterios de aceptación y riesgos: ">Planificar</button></div><div id="attachmentChip" class="attachment-chip" hidden><span aria-hidden="true">▤</span><span id="attachmentName"></span><span class="attachment-scope">CONTEXTO LOCAL</span><button id="removeAttachment" type="button" aria-label="Quitar archivo adjunto">×</button></div><form id="chatForm" class="composer"><label class="sr-only" for="prompt">Mensaje para Isabella</label><button id="attachText" class="icon-button attach-button" type="button" aria-label="Adjuntar archivo de texto" title="Adjuntar un archivo de texto, Markdown, CSV o JSON">＋</button><input id="localFile" type="file" accept=".txt,.md,.csv,.json,.log,text/plain,text/markdown,text/csv,application/json" hidden /><textarea id="prompt" rows="1" placeholder="Escribe lo que necesitas…" autocomplete="off"></textarea><button id="mic" class="icon-button" type="button" aria-label="Activar micrófono" title="Dictar mensaje">◉</button><button class="send" type="submit" aria-label="Enviar mensaje">↑</button></form><p class="disclaimer">Sesión pública protegida · No compartas credenciales ni información sensible.</p></section>
+    <section id="design" class="workspace-pane design-pane" aria-labelledby="design-title">
+      <div class="pane-label">DESIGN SURFACE <span>REPLEGADO</span></div>
+      <h2 id="design-title">Diseño y artefactos</h2><p>Espacio preparado para explorar documentos, interfaces y entregables junto a la conversación.</p>
+    </section>
+    <section id="control" class="workspace-pane control-pane" aria-labelledby="control-title">
+      <div class="pane-label">CONTROL SURFACE <span>REPLEGADO</span></div>
+      <h2 id="control-title">Panel de control</h2><p>Estado, gobernanza, herramientas y evidencia de la sesión activa.</p>
+    </section>
+    <section id="studio" class="studio-panel" aria-labelledby="studio-title">
+      <div class="studio-head"><div><p class="eyebrow">ESPACIO PERSONAL · ALMACENAMIENTO LOCAL</p><h2 id="studio-title">Studio <em>de trabajo.</em></h2><p class="studio-description">Guarda respuestas que quieras reutilizar. Los borradores se conservan en este navegador; no se sincronizan con una cuenta ni con otros dispositivos.</p></div><button id="clearDrafts" class="subtle-action" type="button">Vaciar guardados</button></div>
+      <div id="draftShelf" class="draft-shelf" aria-live="polite"><p class="empty-shelf">Tus respuestas guardadas aparecerán aquí. Usa «Guardar» debajo de una respuesta para conservarla.</p></div>
+    </section>
+    <section id="plans" class="protocols access-section plans-section" aria-labelledby="plans-title"><div><p class="eyebrow">PLANES · FACTURACIÓN TRANSPARENTE</p><h2 id="plans-title">Elige cuánto <em>quieres construir.</em></h2><p class="lede plans-lede">Precios leídos del servidor, sin letra pequeña. El cobro lo procesa un proveedor externo; esta vista no cobra ni concede acceso.</p><div class="plans-toggle" role="group" aria-label="Periodo de facturación"><button type="button" class="plans-interval is-active" data-interval="month" aria-pressed="true">Mensual</button><button type="button" class="plans-interval" data-interval="year" aria-pressed="false">Anual <span class="plans-save" id="plansSave" hidden></span></button></div></div><div id="plansGrid" class="plans-grid" aria-live="polite"><p class="plans-loading">Cargando catálogo…</p></div></section>
+    <section id="tools" class="protocols access-section"><div><p class="eyebrow">CAPA DE EJECUCIÓN</p><h2>Tools para<br><em>hacerlo real.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Investigación</h3><p>Busca, sintetiza y contrasta fuentes antes de convertir una pregunta en una decisión.</p><a href="#chat" data-starter="Ayúdame a preparar una investigación: define las preguntas principales, las fuentes que deberían consultarse, criterios de calidad y cómo separar evidencia de inferencia. ">Preparar investigación ↗</a></article><article><b>02</b><h3>Creación</h3><p>Convierte ideas en documentos, planes, código y experiencias listas para revisar.</p><a href="#chat" data-starter="Ayúdame a crear un entregable profesional. Define objetivo, audiencia, estructura, tono, criterios de calidad y una primera versión editable. ">Preparar entregable ↗</a></article><article><b>03</b><h3>Automatización</h3><p>Diseña flujos con límites claros, evidencia trazable y aprobación humana.</p><a href="#governance">Ver protocolo ↗</a></article></div></section><section id="skills" class="protocols access-section"><div><p class="eyebrow">CAPA DE APRENDIZAJE</p><h2>Skills que<br><em>evolucionan.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Contexto</h3><p>Memoria de sesión y preferencias explícitas para conversaciones más naturales.</p></article><article><b>02</b><h3>Especialistas</h3><p>Modos de análisis, escritura, ingeniería y estrategia según tu intención.</p></article><article><b>03</b><h3>Control humano</h3><p>Cada capacidad informa su estado: draft, verified o wired para producción.</p></article></div></section><section id="economy" class="protocols access-section"><div><p class="eyebrow">CAPA DE VALOR</p><h2>Monetización<br><em>con propósito.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Plan personal</h3><p>Conversación esencial, voz nativa y herramientas para explorar el núcleo.</p><a href="#chat">Comenzar ↗</a></article><article><b>02</b><h3>Plan profesional</h3><p>Skills avanzadas, automatizaciones y espacios de trabajo con control.</p><a href="#chat">Solicitar acceso ↗</a></article><article><b>03</b><h3>Misiones</h3><p>Implementaciones a medida con gobernanza, evidencia y acompañamiento humano.</p><a href="#chat">Hablar con Isabella ↗</a></article></div></section><section id="protocols" class="protocols"><div><p class="eyebrow">ARQUITECTURA DE CONFIANZA</p><h2>Una voz con<br><em>responsabilidad.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Conversación real</h3><p>Contexto breve, respuesta fluida y fallback honesto cuando un proveedor no está disponible.</p></article><article><b>02</b><h3>Gobernanza viva</h3><p>Capacidad, autoridad, ejecución y evidencia permanecen separadas por diseño.</p></article><article><b>03</b><h3>Origen territorial</h3><p>Un núcleo creado desde Real del Monte para una inteligencia latinoamericana.</p></article></div></section>
+    <section id="workspace" class="protocols access-section"><div><p class="eyebrow">ESPACIO DE TRABAJO</p><h2>Construye con<br><em>contexto visible.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Brief activo</h3><p>Define objetivo, alcance y criterio de éxito antes de ejecutar.</p><a href="#chat" data-focus-prompt="true">Abrir brief ↗</a></article><article><b>02</b><h3>Entregables</h3><p>Organiza resultados revisables sin confundir propuesta con autoridad.</p><a href="#chat">Ver entregables ↗</a></article><article><b>03</b><h3>Continuidad</h3><p>Retoma el contexto breve de esta sesión con límites explícitos.</p><a href="#chat">Continuar sesión ↗</a></article></div></section><section id="governance" class="protocols access-section"><div><p class="eyebrow">CAPA DE GOBERNANZA</p><h2>Protocolos que<br><em>rinden cuentas.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Seguridad</h3><p>Entradas limitadas, rate limiting y separación entre capacidad y autoridad.</p></article><article><b>02</b><h3>BookPI</h3><p>Los cambios de capacidad requieren evidencia y revisión humana antes de producción.</p></article><article><b>03</b><h3>Estado honesto</h3><p>Draft, verified y wired describen evidencia; nunca sustituyen una aprobación humana.</p></article></div></section><section id="evidence" class="protocols access-section"><div><p class="eyebrow">TRAZABILIDAD</p><h2>Evidencia<br><em>antes que promesas.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Observabilidad</h3><p>Salud, latencia y errores se exponen como señales operativas, no como marketing.</p></article><article><b>02</b><h3>Fuentes</h3><p>Las respuestas externas deben distinguir inferencia, evidencia y límite de acceso.</p></article><article><b>03</b><h3>Revisión humana</h3><p>La validación computacional no declara facultad, autoridad ni producción.</p></article></div></section><section id="human-control" class="protocols access-section"><div><p class="eyebrow">CONTROL HUMANO</p><h2>Decisiones con<br><em>responsabilidad.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Consentimiento</h3><p>Isabella propone y calcula; la persona decide, aprueba y arbitra.</p></article><article><b>02</b><h3>Límites</h3><p>Acciones sensibles requieren autorización explícita y trazabilidad.</p></article><article><b>03</b><h3>Escalamiento</h3><p>Cuando no hay evidencia suficiente, el sistema se detiene y lo declara.</p></article></div></section><section id="contact" class="protocols access-section"><div><p class="eyebrow">SOPORTE</p><h2>Una interfaz<br><em>que responde.</em></h2></div><div class="protocol-grid"><article><b>01</b><h3>Canal conversacional</h3><p>Describe el problema en el chat y conserva el contexto de la sesión.</p><a href="#chat" data-focus-prompt="true">Contactar ↗</a></article><article><b>02</b><h3>Estado del runtime</h3><p>Consulta el indicador del nodo antes de confiar en una operación.</p><a href="#chat">Ver estado ↗</a></article><article><b>03</b><h3>Escucha humana</h3><p>Las incidencias críticas deben revisarse por una persona responsable.</p><a href="#governance">Ver reglas ↗</a></article></div></section><footer><span>ISABELLA VILLASEÑOR AI · TINA V6</span><span>CAPABILITY ≠ AUTHORITY ≠ EXECUTION</span></footer>
+  </main><dialog id="systemInspector" class="system-inspector" aria-labelledby="systemInspectorTitle">
+    <div class="inspector-top"><div><p class="eyebrow">ISABELLA / SYSTEM INSPECTOR</p><h2 id="systemInspectorTitle">Estado de la sesión</h2></div><button id="closeSystemInspector" class="palette-close" type="button" aria-label="Cerrar inspector">Esc</button></div>
+    <div class="inspector-grid">
+      <div class="inspector-cell"><span>RUNTIME</span><strong id="inspectorRuntime">VERIFICANDO</strong><small>Estado reportado por /api/v1/health</small></div>
+      <div class="inspector-cell"><span>SESSION</span><strong id="inspectorSession">ACTIVE</strong><small>Contexto visible limitado al hilo actual</small></div>
+      <div class="inspector-cell"><span>INPUT</span><strong>18K MAX</strong><small>Prompt + contexto de archivo en esta interfaz</small></div>
+      <div class="inspector-cell"><span>STORAGE</span><strong>LOCAL</strong><small>Studio y borradores permanecen en este navegador</small></div>
+      <div class="inspector-cell"><span>VOICE</span><strong id="inspectorVoice">BROWSER</strong><small>SpeechSynthesis / reconocimiento nativo si está disponible</small></div>
+      <div class="inspector-cell"><span>ATTACHMENT</span><strong id="inspectorAttachment">NONE</strong><small>TXT · MD · CSV · JSON · LOG, con límites explícitos</small></div>
+    </div>
+    <p class="inspector-foot">Este panel muestra estado operativo de la interfaz. No certifica proveedores externos ni autoridad de ejecución.</p>
+  </dialog>
+  <dialog id="commandPalette" class="command-palette" aria-labelledby="commandPaletteTitle">
+    <div class="palette-top"><div><p class="eyebrow">ISABELLA / COMMAND CENTER</p><h2 id="commandPaletteTitle">¿Qué necesitas abrir?</h2></div><button id="closeCommandPalette" class="palette-close" type="button" aria-label="Cerrar buscador de acciones">Esc</button></div>
+    <label class="palette-search-label" for="commandSearch">Buscar secciones y acciones</label>
+    <input id="commandSearch" class="palette-search" type="search" placeholder="Conversar, exportar, guardar…" autocomplete="off" />
+    <div id="commandList" class="command-list">
+      <button type="button" data-command="go-chat" data-keywords="chat conversar mensaje prompt"><span class="command-icon">↗</span><span><strong>Ir a conversar</strong><small>Abrir el canal de Isabella</small></span><kbd>G C</kbd></button>
+      <button type="button" data-command="focus-prompt" data-keywords="escribir empezar nuevo mensaje"><span class="command-icon">✎</span><span><strong>Escribir un mensaje</strong><small>Enfocar el compositor</small></span><kbd>/</kbd></button>
+      <button type="button" data-command="new-chat" data-keywords="limpiar reiniciar sesión conversación"><span class="command-icon">＋</span><span><strong>Nueva sesión</strong><small>Vaciar el chat visible y renovar el identificador</small></span><kbd>⇧ N</kbd></button>
+      <button type="button" data-command="export-chat" data-keywords="descargar markdown guardar conversación"><span class="command-icon">↓</span><span><strong>Exportar conversación</strong><small>Descargar el chat visible como Markdown</small></span></button>
+      <button type="button" data-command="go-studio" data-keywords="studio borradores guardados biblioteca"><span class="command-icon">▤</span><span><strong>Abrir Studio</strong><small>Consultar respuestas guardadas en este navegador</small></span></button>
+      <button type="button" data-command="go-tools" data-keywords="tools herramientas capacidades"><span class="command-icon">⌘</span><span><strong>Herramientas</strong><small>Ver capacidades disponibles y sus límites</small></span></button>
+      <button type="button" data-command="go-skills" data-keywords="skills especialistas"><span class="command-icon">◇</span><span><strong>Skills</strong><small>Contexto, especialistas y control</small></span></button>
+      <button type="button" data-command="go-economy" data-keywords="planes monetización negocio"><span class="command-icon">↗</span><span><strong>Ecosistema</strong><small>Planes y vías de colaboración</small></span></button>
+      <button type="button" data-command="go-evidence" data-keywords="bookpi evidencia latencia fuentes observabilidad"><span class="command-icon">◎</span><span><strong>Evidencia</strong><small>Observabilidad y trazabilidad declarada</small></span></button>
+      <button type="button" data-command="go-governance" data-keywords="gobernanza consentimiento permisos límites"><span class="command-icon">◈</span><span><strong>Gobernanza</strong><small>Permisos, límites y escalamiento humano</small></span></button>
+      <button type="button" data-command="toggle-voice" data-keywords="voz audio escuchar hablar"><span class="command-icon">◖</span><span><strong>Alternar lectura de respuestas</strong><small>Voz sintetizada por el navegador</small></span></button>
+    </div>
+    <p class="palette-foot">Usa ↑ ↓ para recorrer la lista, Enter para abrir y Esc para cerrar. Atajo global: Ctrl/Cmd + K.</p>
+  </dialog>
+  <script src="/ui/app.js?v=enterprise-3" defer></script>
+  <script src="/ui/chat-plus.js?v=enterprise-3" defer></script>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</body></html>

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ige-omega-config
+  namespace: isabella-ige-omega
+data:
+  IGE_BIND: "0.0.0.0:8080"
+  RUST_LOG: "info"
+  IGE_RATE_LIMIT_PER_MINUTE: "120"

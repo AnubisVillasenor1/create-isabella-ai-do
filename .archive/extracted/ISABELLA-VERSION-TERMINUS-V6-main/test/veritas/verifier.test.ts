@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {DeterministicVerifier} from "../../src/veritas/verifier";
+describe("veritas",()=>{it("rejects empty candidate sets and selects viable output",async()=>{const v=new DeterministicVerifier();expect((await v.verify("x",[])).accepted).toBe(false);expect((await v.verify("x",[{branchId:"a",output:"A",score:1},{branchId:"b",output:"B",score:2}])).selected?.branchId).toBe("b");});});

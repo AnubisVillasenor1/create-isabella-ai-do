@@ -1,0 +1,119 @@
+name: IGE-Ω Rust MVP CI
+
+on:
+  push:
+    branches:
+      - "main"
+      - "feat/**"
+      - "evolution/**"
+      - "fix/**"
+    paths:
+      - "ige-omega/**"
+      - ".github/workflows/ige-omega-ci.yml"
+  pull_request:
+    paths:
+      - "ige-omega/**"
+      - ".github/workflows/ige-omega-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ige-omega-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_BACKTRACE: full
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-mvp:
+    name: Rust MVP verify (fmt, clippy, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ige_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ige_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: ige-omega
+        shell: bash
+
+    env:
+      IGE_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/ige_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ige-omega -> target
+
+      - name: Require committed Rust lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.lock ]; then
+            echo "::error::ige-omega/Cargo.lock is missing."
+            echo "::error::Generate it with the approved Rust toolchain and commit it."
+            echo "::error::CI will not silently resolve a new dependency graph."
+            exit 1
+          fi
+          echo "Cargo.lock present."
+
+      - name: Format Rust sources
+        run: cargo fmt --all -- --check
+
+      - name: Compile and lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Unit, contract, and PostgreSQL integration tests
+        run: cargo test --workspace --locked -- --include-ignored
+
+      - name: Release build
+        run: cargo build --release -p gateway --locked
+
+      - name: Generate build metadata
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          cat > evidence/rust-build.json <<EOF
+          {
+            "workflow": "IGE-Ω Rust MVP CI",
+            "sha": "${GITHUB_SHA}",
+            "branch": "${GITHUB_REF_NAME}",
+            "status": "${{ job.status }}",
+            "timestamp": "$(date -u +%FT%TZ)"
+          }
+          EOF
+
+      - name: Upload build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build-evidence-${{ github.sha }}
+          path: evidence/rust-build.json
+          if-no-files-found: error

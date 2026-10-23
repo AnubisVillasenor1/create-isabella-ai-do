@@ -1,0 +1,43 @@
+/* Command center composition: chat is the primary surface, secondary modules stay discoverable without competing for attention. */
+.stage{max-width:1480px}
+.hero,.workspace-context-bar,.workspace-modebar,.side-rail,.rail-launcher,.studio-panel,.access-section,.workspace-pane,.stage>footer,.topbar .nav-links,.topbar .command-launcher,.topbar .status,.topbar .quiet,.topbar .nav-toggle{display:none!important}
+.stage > :not(.topbar):not(#chat){display:none!important}
+#chat.console{display:flex!important}
+#chat .console-overline,#chat .console-state,#chat .prompt-starters,#chat .console-actions .modes{display:none!important}
+#chat .console-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid rgba(150,180,205,.13)}
+#chat .console-head h2{margin:0!important;font-size:clamp(24px,3vw,34px)!important;letter-spacing:-.03em}
+#chat .console-actions{display:flex!important;gap:8px}
+#chat .subtle-action{font-size:10px!important}
+#chat .messages{margin-top:24px!important}
+#chat .prompt{margin-top:20px!important}
+.topbar{margin-inline:0!important;padding-inline:0!important;border-radius:0!important;background:rgba(8,12,18,.94)!important}
+.topbar .nav-links{display:none!important}
+.console{width:min(940px,100%)!important;max-width:940px!important;margin:clamp(38px,8vh,92px) auto 48px!important;min-height:min(670px,calc(100vh - 210px));display:flex;flex-direction:column;justify-content:space-between}
+.console-head{padding-bottom:20px}
+.console-head h2{font-size:clamp(30px,4vw,46px)!important}
+.messages{flex:1;min-height:360px;max-height:none;margin-block:18px;display:flex;flex-direction:column;justify-content:flex-end}
+.prompt-starters{margin-top:12px}
+body{background:radial-gradient(circle at 50% 0%,rgba(94,148,190,.12),transparent 34rem),#080c12}
+@media(max-width:860px){.topbar{margin-inline:-12px!important;padding-inline:12px!important}.console{margin-top:28px!important;min-height:calc(100vh - 150px);border-radius:14px!important}.messages{min-height:260px}}
+@media(max-width:600px){.console{margin-top:18px!important;padding:18px 14px!important}.messages{min-height:220px}}
+
+/* Crystal Clear / pastel metallic neon surface system */
+:root{--crystal-cyan:#9ff7ff;--crystal-lilac:#c9b8ff;--crystal-mint:#a9f5d0;--crystal-rose:#ffb9d8;--crystal-ink:#07131b;--crystal-border:rgba(205,244,255,.26)}
+body{background:radial-gradient(ellipse at 12% -10%,rgba(159,247,255,.16),transparent 32%),radial-gradient(ellipse at 90% 12%,rgba(201,184,255,.14),transparent 36%),radial-gradient(ellipse at 50% 110%,rgba(169,245,208,.09),transparent 40%),#070c13}
+.topbar,.console,.message,.prompt,.subtle-action,.header-action,.console-actions button,.send,.icon-button,.mode,.immersion-card,.workspace-pane,.studio-panel,.access-section,.rail-panel,.command-palette,.draft-card,.system-item,.protocol-card,.tool-card,.skill-card,.control-card{position:relative;isolation:isolate;border:1px solid var(--crystal-border);background:linear-gradient(135deg,rgba(255,255,255,.105),rgba(255,255,255,.025) 42%,rgba(159,247,255,.045));box-shadow:inset 0 1px rgba(255,255,255,.2),inset 0 -1px rgba(159,247,255,.08),0 18px 55px rgba(0,0,0,.22),0 0 0 1px rgba(201,184,255,.035);backdrop-filter:blur(22px) saturate(135%);-webkit-backdrop-filter:blur(22px) saturate(135%);transition:border-color .3s ease,box-shadow .3s ease,transform .3s ease,background .3s ease}
+.topbar::before,.console::before,.message::before,.prompt::before,.subtle-action::before,.header-action::before,.send::before,.icon-button::before,.mode::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,rgba(159,247,255,.2),transparent 28%,rgba(255,185,216,.13) 70%,rgba(169,245,208,.16));opacity:.52;mask-image:linear-gradient(135deg,#000,transparent 60%)}
+.topbar:hover,.console:hover,.message:hover,.prompt:focus-within,.subtle-action:hover,.subtle-action:focus-visible,.header-action:hover,.header-action:focus-visible,.send:hover,.send:focus-visible,.icon-button:hover,.icon-button:focus-visible,.mode:hover,.mode:focus-visible{border-color:rgba(159,247,255,.62);box-shadow:inset 0 1px rgba(255,255,255,.34),0 22px 70px rgba(84,211,255,.13),0 0 28px rgba(201,184,255,.12);transform:translateY(-2px)}
+.console{border-radius:28px!important;padding:clamp(22px,3vw,38px)!important;overflow:hidden}
+.message{border-radius:18px;padding:16px 18px!important;margin:12px 0!important}
+.message.isabella{border-color:rgba(169,245,208,.28)}
+.message.user{border-color:rgba(255,185,216,.3);background:linear-gradient(135deg,rgba(255,185,216,.1),rgba(201,184,255,.05))}
+.prompt{border-radius:20px!important;padding:8px!important}
+.prompt textarea{background:transparent!important;border:0!important;box-shadow:none!important}
+button,.subtle-action,.header-action,.send,.icon-button,.mode{border-radius:12px!important}
+.send{background:linear-gradient(135deg,rgba(159,247,255,.92),rgba(201,184,255,.9) 52%,rgba(169,245,208,.88))!important;color:var(--crystal-ink)!important;font-weight:800!important;box-shadow:0 8px 28px rgba(159,247,255,.2),inset 0 1px rgba(255,255,255,.7)!important}
+.subtle-action,.header-action,.icon-button,.mode{background:rgba(255,255,255,.055)!important;color:var(--text)!important}
+.subtle-action:hover,.header-action:hover,.icon-button:hover,.mode:hover{color:var(--crystal-cyan)!important}
+.console-head{border-bottom-color:rgba(159,247,255,.18)!important}
+.console-head h2,.wordmark{background:linear-gradient(110deg,#f4ffff,#c9b8ff 48%,#a9f5d0);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media (hover:none){.topbar:active,.console:active,.message:active,.subtle-action:active,.send:active,.icon-button:active,.mode:active{border-color:rgba(159,247,255,.7);box-shadow:0 0 32px rgba(159,247,255,.18)}}
+@media (prefers-reduced-motion:reduce){.topbar,.console,.message,.prompt,.subtle-action,.header-action,.send,.icon-button,.mode{transition:none}.topbar:hover,.console:hover,.message:hover,.subtle-action:hover,.send:hover,.icon-button:hover,.mode:hover{transform:none}}

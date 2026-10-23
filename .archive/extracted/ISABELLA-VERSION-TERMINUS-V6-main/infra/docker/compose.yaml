@@ -1,0 +1,28 @@
+# state: draft | auto_generated — Cluster E (opcional)
+# Composición local para paridad con la imagen de producción.
+# Uso: docker compose -f infra/docker/compose.yaml up --build
+#
+# No sustituye a Kubernetes: es solo validación local del Dockerfile.
+name: isabella-genesis
+
+services:
+  runtime:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: isabella-genesisai:local
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    env_file:
+      - path: ../../.env
+        required: false
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
