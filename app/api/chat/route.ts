@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       return Response.json({ error: 'El cuerpo de la solicitud no contiene JSON válido.' }, { status: 400 })
     }
 
+    const payload = typeof body === 'object' && body !== null && !Array.isArray(body) ? body as Record<string, unknown> : {}
     const messages = typeof body === 'object' && body !== null && Array.isArray((body as { messages?: unknown }).messages)
       ? (body as { messages: unknown[] }).messages
       : []
@@ -45,11 +46,11 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Escribe un mensaje para Isabella.' }, { status: 400 })
     }
 
-    const provider = typeof (body as { provider?: unknown }).provider === 'string'
-      ? (body as { provider: string }).provider
+    const provider = typeof payload.provider === 'string'
+      ? payload.provider
       : 'gateway'
-    const requestedModel = typeof (body as { modelId?: unknown }).modelId === 'string'
-      ? (body as { modelId: string }).modelId.trim().slice(0, 180)
+    const requestedModel = typeof payload.modelId === 'string'
+      ? payload.modelId.trim().slice(0, 180)
       : ''
 
     if (provider === 'huggingface') {
