@@ -1,234 +1,149 @@
-# Isabella Villaseñor AI — Genesis TINA / TERMINUS V6
+# Isabella Genesis — Open Intelligence & Revenue Fabric
 
-## Qué es Isabella
+Isabella es un workspace de IA gobernada que reúne chat multi-proveedor, descubrimiento de modelos abiertos, herramientas, datasets y un primer flujo comercial para creadores. La integración de comercio toma como referencia los contratos de **Revenue Fabric** de [ISABELLA-VERSION-TERMINUS-V6](https://github.com/OsoPanda1/ISABELLA-VERSION-TERMINUS-V6) y adapta capacidades seleccionadas del agente abierto [Hermes](https://github.com/NousResearch/hermes-agent), distribuido bajo MIT, sin copiar su runtime completo ni atribuirle capacidades no integradas.
 
-Isabella es una **infraestructura de inteligencia artificial gobernada, federada y auditable**. No es un modelo fundacional, una AGI, una consciencia artificial ni una autoridad autónoma: coordina modelos generativos, reglas deterministas, memoria, herramientas, seguridad, procedencia y revisión humana en un único sistema operativo cognitivo.
+> `CAPABILITY ≠ AUTHORITY ≠ EXECUTION ≠ EVIDENCE ≠ LEARNING ≠ PRODUCTION`
 
-Su principio rector es:
+Un catálogo, una simulación o una migración no certifican un despliegue. Los pagos reales, los devengos contables, los retiros y la verificación fiscal son capas diferentes.
 
-```text
-CAPACIDAD ≠ AUTORIDAD ≠ EJECUCIÓN ≠ EVIDENCIA ≠ APRENDIZAJE ≠ PRODUCCIÓN
-```
+## Capacidades incluidas
 
-Una respuesta puede ser generada por un modelo, pero solo una política puede autorizar una acción; los efectos sensibles requieren aprobación humana; toda evidencia debe conservar procedencia; y un build o test local no equivale a certificación productiva.
+### Inteligencia y herramientas
+- Chat con Vercel AI Gateway, Hugging Face Inference Providers y Ollama local/autohospedado.
+- Catálogo público de modelos, datasets y Spaces de Hugging Face; vista previa acotada de datasets.
+- Selector de modelos y catálogo de Ollama accesible desde el servidor.
+- Workspace de artefactos, exportación Markdown, trazas de sesión y guardrails de revisión humana.
+- Skill operativo de referencia en `skills/huggingface-open-models/SKILL.md`.
 
-## Qué hace
+### Revenue Fabric
+- Catálogo de planes y precio mensual calculado con enteros en centavos.
+- Registro e inicio de sesión de Supabase Auth en el panel Economía.
+- Checkout de suscripción mensual Isabella Plus con Stripe, sujeto a configuración.
+- Webhook Stripe con verificación de firma, tolerancia temporal y deduplicación de eventos de suscripción.
+- Activación de creador después de confirmar una suscripción de pago activa.
+- Publicación de ofertas del marketplace y checkout de compras digitales con Stripe.
+- Reparto determinista de ingresos y devengo de doble entrada con idempotencia por evento.
+- Panel de simulación 50/50, 75/25 y 80/20, con desglose de Fondo Fénix, Infraestructura y DAO.
+- Migración Supabase con tablas protegidas por RLS y funciones RPC reservadas al rol de servicio.
 
-La aplicación unificada de este proyecto ofrece:
+## Precio y reparto
 
-- **Chat cognitivo:** investigar, redactar, analizar y planificar en español.
-- **Contexto de trabajo:** adjuntar nombres de archivos y mantenerlos asociados a la sesión.
-- **Memoria conversacional:** conserva los últimos mensajes para cada solicitud y limita el tamaño del contexto.
-- **Inferencia por Gateway:** usa Vercel AI Gateway con un modelo válido de la familia `openai/gpt-6.1-sol`.
-- **Studio:** convertir sesiones en artefactos revisables y exportar Markdown.
-- **Evidence Ledger:** muestra trazas de identidad, política, modelo y contexto por respuesta.
-- **Governance:** expone la separación entre sugerencia, autorización, ejecución y aprobación humana.
-- **Búsqueda de workspace:** modal para localizar conocimiento, evidencia y sesiones.
-- **Voz y accesibilidad:** lectura de la última respuesta con Web Speech API, navegación semántica y soporte de composición CJK al enviar con Enter.
-- **Exportación:** descarga una sesión completa como Markdown sin enviar secretos al navegador.
+### Suscripción
+El valor predeterminado del catálogo es **US$25/mes**, calculado a partir de una referencia configurable de US$20 más un margen del 25%. Es un **ancla de configuración de ejemplo**, no un promedio de mercado verificado ni una afirmación sobre precios actuales de competidores. Cambia `ISABELLA_REFERENCE_AI_PRICE_CENTS` y `ISABELLA_PRICE_MARKUP_BPS` antes de publicar precios comerciales. El precio se calcula en el servidor y se utiliza al crear la sesión Stripe.
 
-## Cómo funciona
+### Reparto de transacciones de creadores
+| Nivel | Creador | Plataforma |
+| --- | ---: | ---: |
+| Standard | 50% | 50% |
+| Sovereign | 75% | 25% |
+| Elite | 80% | 20% |
 
-```text
-Entrada del usuario
-  → validación server-side y límites
-  → contexto de sesión y recursos adjuntos
-  → prompt de Isabella con reglas de honestidad
-  → modelo del AI Gateway
-  → respuesta normalizada
-  → trazas de evidencia visibles en la interfaz
-  → revisión humana antes de cualquier efecto externo
-```
+El nivel inicial de creador es Standard. La UI permite comparar niveles en una simulación, pero el usuario **no puede asignarse un nivel superior** enviando datos desde el navegador: el devengo consulta el nivel guardado en la base de datos. El reparto se calcula con enteros en centavos; el remanente de redondeo permanece en la parte de plataforma.
 
-La ruta `POST /api/chat` acepta únicamente mensajes `user` y `assistant`, conserva como máximo 20 turnos y recorta cada contenido a 6.000 caracteres. La respuesta se produce en servidor; no se exponen claves de proveedores en el cliente. Los archivos adjuntos de esta versión funcionan como contexto identificable de sesión; el contenido binario no se sube ni se persiste automáticamente.
+La parte de plataforma se distribuye internamente así: **20% Fondo Fénix, 30% Infraestructura y 50% DAO**. Estos porcentajes se aplican a la parte de plataforma, no al bruto de la transacción.
 
-## Arquitectura de módulos
+Una cuenta debe registrarse, mantener una suscripción de pago activa y activar su perfil de creador para publicar ofertas. Las cuentas gratuitas, con pago vencido, canceladas o sin perfil elegible no generan devengos de creador. Los ingresos registrados no equivalen a fondos transferidos.
 
-| Módulo | Responsabilidad | Estado en este proyecto |
-| --- | --- | --- |
-| Cognitive Chat | Conversación, contexto y respuesta del modelo | Implementado |
-| AI Gateway Adapter | Acceso server-side a modelos multi-proveedor | Implementado |
-| Policy / CROWN | Separar capacidad de autoridad y bloquear efectos sensibles | Implementado como guardrail de producto |
-| Evidence Ledger / BookPI | Trazas de identidad, modelo, contexto y política | Implementado en sesión |
-| Memory Mesh | Contexto de conversación acotado y recursos del workspace | Implementado en sesión |
-| Studio | Artefactos, exportación y carga de recursos | Implementado |
-| Science Integrity | Procedencia, afirmaciones y revisión científica | Contrato documentado; requiere backend durable para certificación |
-| Hypercore | Aceleración sin saltarse gates | Principio documentado; sin ejecución externa autónoma |
-| Federated Learning | Aprendizaje territorial y adapters | Arquitectura de referencia; no se activa entrenamiento remoto desde la UI |
-| Zero Trust | Validación, límites y no ejecución sensible | Implementado como límites de API y diseño fail-closed |
-| Territorial Nodes | TAMV, RDM Digital Hub, Nodo Cero y despliegues LATAM | Integración conceptual/documental |
+## Rutas principales
 
-## Tools
+| Método | Ruta | Función | Límite / seguridad |
+| --- | --- | --- | --- |
+| GET | `/api/commerce/catalog` | Planes, precio y reglas de reparto | Catálogo público; informa capacidades configuradas |
+| POST | `/api/commerce/revenue-preview` | Simulación de reparto | **No autoriza ni registra pagos**; el estado enviado es solo de prueba |
+| POST | `/api/commerce/checkout` | Checkout de suscripción Isabella Plus | Requiere identidad Supabase válida y Stripe configurado |
+| POST | `/api/commerce/creator/activate` | Activa perfil Standard | Requiere identidad y suscripción pagada activa verificada en DB |
+| GET/POST | `/api/commerce/marketplace/offers` | Lista ofertas públicas / publica una oferta | Publicar requiere creador activado y suscripción vigente |
+| POST | `/api/commerce/marketplace/checkout` | Compra una oferta | Requiere comprador autenticado, oferta publicada y creador elegible |
+| POST | `/api/commerce/webhook` | Procesa eventos Stripe | Firma obligatoria; suscripciones y compras del marketplace |
+| POST | `/api/commerce/accrual` | Registra un devengo interno | Requiere `ISABELLA_OMEGA_API_TOKEN`; no mueve fondos |
+| GET | `/api/huggingface/discover` | Descubre modelos, datasets y Spaces | Catálogo público; límites y rate limits del proveedor |
+| GET | `/api/huggingface/dataset-preview` | Muestra filas de un dataset público | Vista previa limitada; no descarga datasets completos |
+| GET | `/api/ollama/models` | Lista modelos de Ollama | El runtime debe ser accesible desde el servidor |
+| POST | `/api/chat` | Conversación con el proveedor seleccionado | Validación de entrada y secretos solo en servidor |
 
-En el ecosistema Isabella, una tool es una capacidad explícita con contrato, riesgo, scopes, timeout, procedencia y side effects declarados. Las categorías de referencia son:
+## Configuración
 
-- recuperación de conocimiento y búsqueda híbrida;
-- lectura y transformación de documentos;
-- análisis de claims y cobertura de citas;
-- clasificación de riesgo y detección de anomalías;
-- validación de procedencia, hashes y cadenas Merkle;
-- conectores federados para fuentes institucionales;
-- generación de planes, documentos y artefactos;
-- observabilidad, auditoría y exportación;
-- adaptadores de modelos con fallback gobernado.
+Instala dependencias con la versión de pnpm fijada por `package.json`, y configura variables privadas en el gestor de secretos de tu entorno.
 
-La interfaz incluida no ejecuta herramientas externas, pagos, publicación, borrado, cambios de infraestructura ni acciones legales de forma autónoma.
-
-## Skills
-
-Los skills son capacidades compuestas gobernadas que combinan instrucciones, tools, políticas y formatos de salida. Las familias definidas por los repositorios de referencia incluyen:
-
-- investigación y síntesis con evidencia;
-- redacción científica, legal y técnica;
-- análisis de problemas y planificación;
-- integridad científica y verificación de claims;
-- seguridad, privacidad, PII y prompt-injection defense;
-- memoria, RAG y procedencia;
-- gobernanza CROWN, revisión humana y auditoría;
-- aprendizaje federado, adapters y feedback;
-- operación territorial soberana para TAMV/RDM;
-- creación de artefactos y exportación reproducible.
-
-Un skill no debe concederse autoridad por sí mismo: la autorización se reevalúa antes de ejecutar cualquier efecto.
-
-## Diferenciadores frente a otras IA
-
-1. **Gobernanza separada del modelo:** el LLM sugiere; no se autoautoriza.
-2. **Trazabilidad como funcionalidad:** contexto, política, modelo y eventos se exponen como evidencia revisable.
-3. **Soberanía territorial:** el diseño permite custodias, reglas, idiomas y modelos por territorio.
-4. **Proveedor agnóstico:** el Gateway permite cambiar de modelo sin convertir al proveedor en la identidad de Isabella.
-5. **Honestidad epistemológica:** distingue hecho, inferencia, supuesto, evidencia insuficiente y decisión humana.
-6. **Fail-closed:** una dependencia ausente no debe simular una aprobación o un estado productivo.
-7. **Ciencia reproducible:** BookPI, IGDS, NCUA y claim-radar forman una base para procedencia y revisión.
-8. **Arquitectura federada:** conecta nodos sin exigir que todos los datos abandonen su custodia local.
-
-## Ejecución
-
-Requisitos: Node.js 20+, pnpm y variables del proyecto administradas por Vercel. En Preview, AI Gateway autentica automáticamente. Para desarrollo local, configura el Gateway desde las variables del proyecto; nunca pongas claves en el código.
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Abre `http://localhost:3000` y prueba:
-
-1. `Investigar un tema: soberanía digital en LATAM`.
-2. Añade un archivo desde el botón de adjuntar.
-3. Consulta Evidence y Governance.
-4. Exporta la sesión desde Studio o el botón Exportar.
-
-## Seguridad y límites
-
-- La API valida forma, roles y longitud antes de llamar al modelo.
-- La respuesta no concede autoridad ni ejecuta efectos externos.
-- No se deben incluir secretos, credenciales o PII innecesaria en prompts.
-- Para producción se requiere persistencia durable, autenticación, RBAC/ABAC, rate limiting distribuido, ledger append-only, observabilidad y auditoría externa.
-- `IMPLEMENTED` no significa `TESTED`, `VERIFIED`, `DEPLOYED` ni `CERTIFIED`.
-
-## Referencias
-
-La implementación consolida los repositorios públicos `OsoPanda1/isabella-ai-tina`, `ISABELLA-VERSION-TERMINUS-V6`, `Isabella-V6-TINA`, `isabella-s-genesis-ai`, `isabella-s-core-intelligence`, `isabella-s-crown`, `mexican-ai-isabella`, `base-isabella` y `MI-ISABELLA`, además de la documentación pública del ecosistema TAMV/RDM. Las afirmaciones de certificación, seguridad poscuántica, consciencia o soberanía legal no se infieren de esta integración.
-
-## Licencia
-
-Conserva las licencias de cada repositorio y dependencia de origen. Antes de redistribuir documentación, código o datos de terceros, verifica sus licencias y atribuciones.
-
-
-## Isabella Ω Genesis Supreme — implementación inicial
-
-Esta rama añade una primera capa operativa de Ω. Los módulos se deben considerar **integración inicial**, no certificación productiva.
-
-### Rutas incorporadas
-
-| Ruta | Función | Límite actual |
-| --- | --- | --- |
-| `GET /api/omega/health` | Informa configuración disponible y dependencias faltantes | No ejecuta pruebas de carga ni certifica el despliegue |
-| `POST /api/omega/policy` | Evalúa una acción y nivel de riesgo con reglas deterministas | No ejecuta la acción; no sustituye autorización por usuario |
-| `GET/POST /api/omega/evidence` | Consulta o registra eventos en Supabase y calcula hashes SHA-256 | No es aún un ledger append-only encadenado: la cadena y la concurrencia requieren controles adicionales |
-| `GET/POST /api/omega/memory` | Guarda y consulta memorias por tenant y propietario | Requiere autenticación de usuario y políticas de aislamiento antes de multiusuario productivo |
-| `POST /api/omega/research` | Normaliza metadatos de claims/fuentes y genera hashes reproducibles | Marca los claims como no verificados; no valida la veracidad de fuentes |
-| `POST /api/omega/music/plan` | Produce un blueprint de composición por género, tempo y secciones | No genera ni sintetiza audio |
-| `/omega` | Panel de estado de configuración de los módulos Ω | Es una vista diagnóstica, no una consola de administración certificada |
-
-### Variables de entorno para los endpoints Ω
+### Variables necesarias
 
 ```dotenv
+# Supabase server-side
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
 ISABELLA_OMEGA_API_TOKEN=
+
+# Supabase Auth client — la anon key es pública; nunca publiques la service role
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# Precio: US$20 de referencia + 25% = US$25/mes por defecto
+ISABELLA_REFERENCE_AI_PRICE_CENTS=2000
+ISABELLA_PRICE_MARKUP_BPS=2500
+ISABELLA_PUBLIC_URL=https://tu-dominio.example
+
+# Stripe server-side
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# AI Gateway / Hugging Face / Ollama, opcionales
+AI_GATEWAY_API_KEY=
+AI_GATEWAY_MODEL=openai/gpt-6.1-sol-fast
+AI_GATEWAY_FALLBACK_MODELS=
+HF_TOKEN=
+HF_MODEL=openai/gpt-oss-120b:fireworks-ai
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:8b
 ```
 
-Configura los valores en el gestor de secretos del entorno de servidor. **Nunca** los expongas como variables `NEXT_PUBLIC_*`, ni los incluyas en commits. Los endpoints protegidos requieren `Authorization: Bearer <ISABELLA_OMEGA_API_TOKEN>`. Este mecanismo es una barrera compartida de servicio; no equivale a identidad, SSO, RBAC/ABAC ni autorización multiusuario.
+Nunca configures `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `HF_TOKEN` ni `ISABELLA_OMEGA_API_TOKEN` como variables `NEXT_PUBLIC_*`.
 
-### Migración de base de datos
+### Migración y Stripe
 
-La migración `supabase/migrations/202610230001_isabella_omega_core.sql` crea tablas de evidencia y memoria, índices y habilita RLS sin políticas de cliente. Revisa y ejecuta la migración en un proyecto Supabase de prueba antes de producción. Las escrituras con service role omiten RLS, por lo que el servidor debe validar tenant/owner y deben agregarse controles operativos, grants y triggers para una política append-only real.
+1. Revisa y ejecuta `supabase/migrations/202610230002_isabella_revenue_fabric.sql` en una base Supabase de prueba.
+2. Configura `ISABELLA_PUBLIC_URL`, las claves Stripe y las variables de Supabase.
+3. Registra `/api/commerce/webhook` como endpoint Stripe y suscribe los eventos `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` y `checkout.session.completed`.
+4. Prueba registro, confirmación de correo si está habilitada, login, checkout en modo test, webhook firmado, activación de creador, publicación, compra y deduplicación.
+5. Comprueba los asientos de `isabella_revenue_share_runs`, `isabella_revenue_share_lines` y `isabella_marketplace_orders` antes de activar producción.
 
-### Verificación pendiente
+El checkout de suscripción usa Stripe Checkout en modo `subscription`. Las compras del marketplace usan Checkout en modo `payment`. Los eventos verificados actualizan el estado de la suscripción o registran la compra. El devengo se bloquea si la base no encuentra una suscripción de pago activa y un perfil de creador aprobado.
 
-Antes de afirmar que el proyecto está listo para producción, ejecutar en un entorno con dependencias instaladas:
+## Integridad y límites económicos
+
+- La función SQL `record_isabella_revenue_accrual` registra un devengo de doble entrada e impone una clave de evento única. No transfiere dinero.
+- La función SQL `apply_isabella_stripe_subscription_event` deduplica eventos y evita aplicar estados de suscripción con marcas temporales anteriores.
+- RLS está activado y se revoca el acceso directo de roles `anon` y `authenticated` a las tablas financieras. Las operaciones se realizan en servidor o RPC con `service_role`.
+- El endpoint interno `/api/commerce/accrual` solo debe invocarse después de verificar el evento de pago de un proveedor confiable.
+- No se ha implementado Stripe Connect, onboarding KYC de beneficiarios, retiros, retenciones/CFDI, conciliación bancaria, reembolsos automáticos, contracargos ni clawback automatizado. Los fondos no se transfieren a creadores desde esta versión.
+- La cuenta de creador puede quedar habilitada para devengos, pero los payouts permanecen desactivados hasta implementar verificación de beneficiario, requisitos fiscales y una ruta de pago segura.
+- La migración debe aplicarse en el proyecto Supabase; que exista en GitHub no significa que esté desplegada.
+- La UI de registro mantiene el access token en memoria de la página y no lo persiste entre recargas. La renovación de sesión y la gestión completa de perfil aún requieren integración.
+- Los estados de elegibilidad mostrados en el simulador proceden de datos introducidos por el usuario y no deben utilizarse para autorizar pagos.
+
+## Ejecutar en local
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Para verificar el cambio antes de fusionar:
+
+```bash
 pnpm lint
 pnpm build
 ```
 
-También faltan pruebas de integración contra Supabase, tests de aislamiento entre tenants, autenticación de usuarios, rate limiting distribuido, auditoría de seguridad, validación de despliegue y revisión de las dependencias externas. Un hash demuestra integridad del contenido comparado, no que el contenido sea verdadero.
+La ejecución de CI, el build, la integración real de Stripe, la migración en Supabase y el despliegue remoto deben verificarse contra el commit evaluado. Este README no declara esas comprobaciones como exitosas.
 
+## Referencias y licencias
 
-## Open Models · Hugging Face integration
+- [ISABELLA-VERSION-TERMINUS-V6](https://github.com/OsoPanda1/ISABELLA-VERSION-TERMINUS-V6) — arquitectura canónica y contratos Revenue Fabric.
+- [Hermes Agent](https://github.com/NousResearch/hermes-agent) — referencia de agente, tools, skills y MCP; licencia MIT en el archivo fuente adjunto.
+- [Supabase Auth](https://supabase.com/docs/guides/auth)
+- [Stripe Checkout subscriptions](https://docs.stripe.com/payments/checkout/build-subscriptions)
+- [Stripe webhooks](https://docs.stripe.com/webhooks)
+- [Hugging Face Hub API](https://huggingface.co/docs/hub/en/api)
 
-Isabella ahora incluye un navegador del catálogo público de Hugging Face, selección de proveedor en el chat y un adaptador server-side para Inference Providers.
-
-### Funciones añadidas
-- `GET /api/huggingface/discover?type=models&q=...`: explora modelos del Hub y filtra por texto; opcionalmente admite `task`, `sort` y `limit`.
-- `GET /api/huggingface/discover?type=datasets&q=...`: descubre datasets públicos.
-- `GET /api/huggingface/discover?type=spaces&q=...`: descubre Spaces y aplicaciones comunitarias.
-- `GET /api/huggingface/dataset-preview?dataset=owner/name`: obtiene una vista previa acotada de hasta cinco filas desde Datasets Viewer, sin descargar el dataset completo.
-- El chat puede utilizar `provider: "huggingface"` y un `modelId`, o continuar con el proveedor predeterminado `gateway`.
-- El panel **Open Models** ofrece selección de modelos, enlaces a fichas originales, estadísticas del Hub y accesos a documentación, MCP y skills.
-- La guía de agente está en `skills/huggingface-open-models/SKILL.md`; la referencia operativa, en `docs/HUGGINGFACE_INTEGRATION.md`.
-
-### Variables del servidor
-
-```dotenv
-HF_TOKEN=
-HF_MODEL=openai/gpt-oss-120b:fireworks-ai
-AI_GATEWAY_MODEL=openai/gpt-6.1-sol-fast
-AI_GATEWAY_FALLBACK_MODELS=
-```
-
-Configura `HF_TOKEN` en las variables de entorno privadas de Vercel o en el gestor de secretos local. Nunca utilices `NEXT_PUBLIC_HF_TOKEN` ni publiques credenciales. La exploración pública del catálogo no necesita token; la inferencia sí. Para AI Gateway, `AI_GATEWAY_MODEL` selecciona el modelo principal y `AI_GATEWAY_FALLBACK_MODELS` permite hasta tres IDs alternativos, separados por coma; confirma sus IDs y costes en el catálogo vigente antes de habilitarlos.
-
-### Límites de gratuidad
-**No existe una garantía de que todos los modelos open source puedan ejecutarse gratis en la nube.** Los pesos abiertos pueden ejecutarse localmente con hardware suficiente y licencias compatibles; la inferencia alojada depende del proveedor, los créditos, los límites, la disponibilidad y las condiciones de cada modelo. Hugging Face documenta créditos gratuitos mensuales limitados para Inference Providers, sujetos a cambios. Revisa los costes vigentes antes de automatizar llamadas: https://huggingface.co/docs/inference-providers/pricing
-
-El catálogo muestra metadatos; no certifica calidad, seguridad, licencia comercial ni coste cero. Revisa siempre la model card y licencia antes de adoptar un modelo o dataset.
-
-### MCP, Skills y tools
-Para conectar herramientas de Hugging Face a un agente de desarrollo compatible, configura la integración oficial desde https://huggingface.co/settings/mcp. La autorización se realiza por el operador y cliente; la aplicación web no obtiene automáticamente permisos del Hub. La integración oficial permite descubrir modelos, datasets, Spaces, documentación y herramientas comunitarias compatibles con MCP.
-
-- Agentes y skills: https://huggingface.co/docs/hub/agents-overview
-- MCP: https://huggingface.co/docs/hub/en/agents-mcp
-- API del Hub: https://huggingface.co/docs/hub/en/api
-- Inferencia y proveedores: https://huggingface.co/docs/inference-providers/index
-
-### Verificación
-Se añadió el workflow `.github/workflows/ci.yml` para ejecutar instalación congelada, typecheck, lint y build. El estado debe verificarse en Actions; el código registrado no equivale a un build exitoso ni a un despliegue validado.
-
-
-### Inferencia local sin créditos de proveedor: Ollama
-
-Para ejecutar modelos de pesos abiertos en infraestructura propia, configura Ollama y descarga el modelo que soporte tu hardware. Ejemplo de desarrollo local:
-
-```bash
-ollama pull qwen3:8b
-ollama serve
-pnpm dev
-```
-
-Configura opcionalmente `OLLAMA_BASE_URL` y `OLLAMA_MODEL` en el servidor. La app añade `GET /api/ollama/models` para enumerar los modelos instalados y el selector **Ollama local** para usarlos en el chat. Esta ruta consulta Ollama desde el servidor Next.js: en Vercel, `127.0.0.1` es el contenedor de Vercel, no el ordenador del usuario. Para despliegues remotos, utiliza un endpoint privado y alcanzable, con autenticación de red y controles de acceso. No expongas el puerto de Ollama directamente a Internet.
-
-El cómputo local evita créditos por inferencia de un proveedor externo, pero necesita hardware, electricidad, almacenamiento y una licencia compatible. No todos los modelos caben en cualquier equipo.
+Revisa las licencias de cada modelo, dataset, herramienta y dependencia antes de uso comercial. Una licencia de código MIT del agente fuente no concede derechos sobre los modelos, datasets o proveedores conectados.
