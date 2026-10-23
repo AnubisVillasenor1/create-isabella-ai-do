@@ -186,6 +186,7 @@ Isabella ahora incluye un navegador del catálogo público de Hugging Face, sele
 - `GET /api/huggingface/discover?type=models&q=...`: explora modelos del Hub y filtra por texto; opcionalmente admite `task`, `sort` y `limit`.
 - `GET /api/huggingface/discover?type=datasets&q=...`: descubre datasets públicos.
 - `GET /api/huggingface/discover?type=spaces&q=...`: descubre Spaces y aplicaciones comunitarias.
+- `GET /api/huggingface/dataset-preview?dataset=owner/name`: obtiene una vista previa acotada de hasta cinco filas desde Datasets Viewer, sin descargar el dataset completo.
 - El chat puede utilizar `provider: "huggingface"` y un `modelId`, o continuar con el proveedor predeterminado `gateway`.
 - El panel **Open Models** ofrece selección de modelos, enlaces a fichas originales, estadísticas del Hub y accesos a documentación, MCP y skills.
 - La guía de agente está en `skills/huggingface-open-models/SKILL.md`; la referencia operativa, en `docs/HUGGINGFACE_INTEGRATION.md`.
