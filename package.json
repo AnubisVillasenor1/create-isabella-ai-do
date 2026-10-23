@@ -7,7 +7,9 @@
     "dev": "next dev",
     "lint": "eslint .",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "ai-gateway:setup": "npx vercel@latest ai-gateway setup"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
