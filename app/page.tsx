@@ -12,10 +12,10 @@ type LocalModel = { name: string; sizeBytes: number | null; parameters: string |
 
 const starters = ['Investigar un tema', 'Redactar un documento', 'Analizar un problema', 'Crear un plan']
 const systems = [
-  { id: 'knowledge', label: 'Knowledge Graph', value: '12,482', meta: 'entidades indexadas', icon: GitBranch },
-  { id: 'evidence', label: 'Evidence Ledger', value: '100%', meta: 'trazas firmadas', icon: BookOpen },
-  { id: 'policy', label: 'Policy Engine', value: 'HUMAN', meta: 'gated authority', icon: ShieldCheck },
-  { id: 'runtime', label: 'Runtime', value: 'ONLINE', meta: 'latencia 184ms', icon: Activity },
+  { id: 'knowledge', label: 'Knowledge Graph', value: 'NOT CONNECTED', meta: 'sin índice de conocimiento conectado', icon: GitBranch },
+  { id: 'evidence', label: 'Evidence Ledger', value: 'SESSION', meta: 'trazas visuales; no implica firma criptográfica', icon: BookOpen },
+  { id: 'policy', label: 'Policy Engine', value: 'HUMAN-GATED', meta: 'efectos sensibles requieren revisión humana', icon: ShieldCheck },
+  { id: 'runtime', label: 'Runtime', value: 'UNMEASURED', meta: 'latencia y disponibilidad no medidas en vivo', icon: Activity },
 ]
 
 export default function Page() {
