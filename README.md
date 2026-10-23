@@ -176,3 +176,53 @@ pnpm build
 ```
 
 También faltan pruebas de integración contra Supabase, tests de aislamiento entre tenants, autenticación de usuarios, rate limiting distribuido, auditoría de seguridad, validación de despliegue y revisión de las dependencias externas. Un hash demuestra integridad del contenido comparado, no que el contenido sea verdadero.
+
+
+## Vercel AI Gateway: enrutamiento y agentes de codificación
+
+El chat de Isabella utiliza AI SDK y Vercel AI Gateway. El identificador principal puede configurarse sin editar código; los fallbacks son opcionales y se pasan al Gateway en orden. El modelo por defecto existente, `openai/gpt-6.1-sol-fast`, se contrastó con el catálogo vivo de AI Gateway al integrar esta funcionalidad. Consulta siempre el catálogo antes de cambiarlo.
+
+### Variables de entorno
+
+```dotenv
+AI_GATEWAY_API_KEY=
+AI_GATEWAY_MODEL=openai/gpt-6.1-sol-fast
+AI_GATEWAY_FALLBACK_MODELS=
+```
+
+- En Vercel, AI SDK puede utilizar la autenticación OIDC del proyecto.
+- En desarrollo local o servidores externos, configura `AI_GATEWAY_API_KEY` mediante un gestor de secretos o archivo local excluido de Git.
+- `AI_GATEWAY_FALLBACK_MODELS` acepta hasta tres IDs separados por coma. Cada ID debe existir en el catálogo actual. Los fallbacks pueden generar costes adicionales si el modelo principal falla.
+- Las respuestas de `POST /api/chat` incluyen el ID del modelo y el uso reportado, sin exponer credenciales.
+
+### Catálogo de modelos
+
+`GET /api/omega/models` consulta `https://ai-gateway.vercel.sh/v1/models` desde el servidor y devuelve metadatos filtrables, no credenciales. Parámetros opcionales:
+
+- `q`: texto para buscar por ID, nombre o etiqueta.
+- `provider`: prefijo del proveedor, por ejemplo `openai` o `anthropic`.
+- `modality`: `text`, `image`, `audio`, `video`, `embedding`, `reranking`, `transcription`, `speech` o `realtime`.
+
+Ejemplo: `GET /api/omega/models?provider=openai&modality=text`. La ruta necesita `AI_GATEWAY_API_KEY` o un `VERCEL_OIDC_TOKEN` disponible para esa ejecución. La existencia en el catálogo no garantiza acceso del equipo, créditos disponibles ni soporte para todos los parámetros.
+
+### Enrutar agentes de codificación
+
+Para conectar los agentes compatibles instalados en el equipo de desarrollo, ejecuta manualmente:
+
+```bash
+pnpm ai-gateway:setup
+# Equivale a:
+npx vercel@latest ai-gateway setup
+```
+
+El CLI detecta agentes compatibles, muestra una vista previa y solicita confirmación antes de escribir sus configuraciones. El setup se ejecuta en el equipo del desarrollador; no se ejecuta automáticamente desde el servidor Next.js ni modifica por sí solo las configuraciones locales de todos los colaboradores. Para Claude Code, sigue la configuración específica de su endpoint y el selector de modelos indicada por la documentación vigente de Vercel.
+
+### Observabilidad y control de costes
+
+Cada solicitud se registra en los registros de AI Gateway según su disponibilidad de ingestión. Revisa modelo, proveedor, tokens, coste, latencia y fallbacks en el panel de Vercel. El fallback no es una política de presupuesto: configura presupuestos y alertas en AI Gateway por separado.
+
+Referencias oficiales:
+- https://vercel.com/docs/ai-gateway
+- https://vercel.com/docs/ai-gateway/getting-started
+- https://vercel.com/docs/ai-gateway/models-and-providers/model-fallbacks
+- https://vercel.com/docs/ai-gateway/coding-agents
