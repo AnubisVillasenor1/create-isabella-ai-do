@@ -149,12 +149,16 @@ begin
 
   -- Balanced double-entry accrual: one debit against provider clearing and
   -- credits to the creator and the platform's three internal allocations.
-  insert into public.isabella_revenue_share_lines(run_id, account_code, debit_cents, credit_cents) values
-    (v_run.id, 'provider_clearing', p_gross_cents, 0),
-    (v_run.id, 'creator_payable', 0, v_creator_cents),
-    (v_run.id, 'phoenix_fund', 0, v_phoenix),
-    (v_run.id, 'infrastructure', 0, v_infrastructure),
-    (v_run.id, 'dao', 0, v_dao);
+  insert into public.isabella_revenue_share_lines(run_id, account_code, debit_cents, credit_cents)
+  select v_run.id, line.account_code, line.debit_cents, line.credit_cents
+  from (values
+    ('provider_clearing'::text, p_gross_cents, 0::bigint),
+    ('creator_payable'::text, 0::bigint, v_creator_cents),
+    ('phoenix_fund'::text, 0::bigint, v_phoenix),
+    ('infrastructure'::text, 0::bigint, v_infrastructure),
+    ('dao'::text, 0::bigint, v_dao)
+  ) as line(account_code, debit_cents, credit_cents)
+  where line.debit_cents > 0 or line.credit_cents > 0;
 
   return jsonb_build_object('idempotent', false, 'run', to_jsonb(v_run), 'fundsMoved', false);
 end;
