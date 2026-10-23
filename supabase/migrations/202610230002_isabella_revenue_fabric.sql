@@ -276,6 +276,7 @@ create table if not exists public.isabella_marketplace_orders (
   currency char(3) not null check (currency ~ '^[A-Z]{3}$'),
   revenue_run_id uuid references public.isabella_revenue_share_runs(id),
   payment_status text not null default 'paid' check (payment_status in ('paid','refunded','disputed')),
+  review_required boolean not null default false,
   created_at timestamptz not null default now()
 );
 create index if not exists isabella_marketplace_orders_buyer_idx
