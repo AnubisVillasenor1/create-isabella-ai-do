@@ -44,7 +44,8 @@ create table if not exists public.isabella_revenue_share_runs (
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   constraint isabella_revenue_split_balances check (
-    creator_cents + phoenix_fund_cents + infrastructure_cents + dao_cents = gross_cents
+    creator_cents + platform_cents = gross_cents
+    and platform_cents = phoenix_fund_cents + infrastructure_cents + dao_cents
   )
 );
 create index if not exists isabella_revenue_runs_creator_idx
