@@ -54,12 +54,100 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_stripe_event_metadata" }, { status: 400 });
   }
 
+  const data = event.data && typeof event.data === "object" ? event.data as Record<string, unknown> : {};
+  const object = data.object && typeof data.object === "object" ? data.object as Record<string, unknown> : {};
+
+  if (eventType === "checkout.session.completed") {
+    const metadata = object.metadata && typeof object.metadata === "object" ? object.metadata as Record<string, unknown> : {};
+    if (object.mode !== "payment" || object.payment_status !== "paid" || metadata.isabella_marketplace !== "true") {
+      return Response.json({ received: true, ignored: true, eventType });
+    }
+
+    const offerId = typeof metadata.offer_id === "string" ? metadata.offer_id : "";
+    const creatorUserId = typeof metadata.creator_user_id === "string" ? metadata.creator_user_id : "";
+    const buyerUserId = typeof metadata.buyer_user_id === "string" ? metadata.buyer_user_id : "";
+    const sessionId = typeof object.id === "string" ? object.id : "";
+    const grossCents = object.amount_total;
+    const currency = typeof object.currency === "string" ? object.currency.toUpperCase() : "";
+    if (!offerId || !creatorUserId || !buyerUserId || !sessionId || !Number.isSafeInteger(grossCents) || (grossCents as number) <= 0 || !/^[A-Z]{3}$/.test(currency)) {
+      return Response.json({ error: "marketplace_checkout_metadata_invalid" }, { status: 400 });
+    }
+
+    try {
+      const root = url.replace(/\/$/, "");
+      const headers = { apikey: serviceKey, Authorization: "Bearer " + serviceKey, Accept: "application/json" };
+      const offerQuery = new URLSearchParams({ select: "id,creator_user_id", id: "eq." + offerId, limit: "1" });
+      const offerResponse = await fetch(root + "/rest/v1/isabella_creator_offers?" + offerQuery, { headers, cache: "no-store", signal: AbortSignal.timeout(8_000) });
+      if (!offerResponse.ok) return Response.json({ error: "marketplace_offer_verification_failed" }, { status: 502 });
+      const offers = await offerResponse.json() as Array<{ id: string; creator_user_id: string }>;
+      if (!offers[0] || offers[0].creator_user_id !== creatorUserId) {
+        return Response.json({ error: "marketplace_offer_owner_mismatch" }, { status: 400 });
+      }
+
+      const accrualResponse = await fetch(root + "/rest/v1/rpc/record_isabella_revenue_accrual", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          p_source_event_id: "stripe-checkout-" + sessionId,
+          p_creator_user_id: creatorUserId,
+          p_gross_cents: grossCents,
+          p_currency: currency,
+          p_metadata: { provider: "stripe", providerEventId: eventId, offerId, checkoutSessionId: sessionId, buyerUserId },
+        }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(12_000),
+      });
+      let revenueRunId: string | null = null;
+      let reviewRequired = false;
+      if (accrualResponse.ok) {
+        const accrual = await accrualResponse.json() as { run?: { id?: string } };
+        revenueRunId = typeof accrual.run?.id === "string" ? accrual.run.id : null;
+      } else {
+        const failure = await accrualResponse.json().catch(() => null) as { message?: string } | null;
+        if (failure?.message?.includes("CREATOR_REQUIRES_ACTIVE_PAID_SUBSCRIPTION") || failure?.message?.includes("CREATOR_NOT_APPROVED")) {
+          reviewRequired = true;
+        } else {
+          return Response.json({ error: "marketplace_accrual_failed", retryable: true }, { status: 502 });
+        }
+      }
+
+      const orderResponse = await fetch(root + "/rest/v1/isabella_marketplace_orders?on_conflict=checkout_session_id", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
+        body: JSON.stringify([{
+          checkout_session_id: sessionId,
+          source_event_id: eventId,
+          offer_id: offerId,
+          buyer_user_id: buyerUserId,
+          creator_user_id: creatorUserId,
+          gross_cents: grossCents,
+          currency,
+          revenue_run_id: revenueRunId,
+          payment_status: "paid",
+          review_required: reviewRequired,
+        }]),
+        cache: "no-store",
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!orderResponse.ok) return Response.json({ error: "marketplace_order_persist_failed", retryable: true }, { status: 502 });
+      return Response.json({
+        received: true,
+        marketplacePurchaseRecorded: true,
+        revenueAccrued: Boolean(revenueRunId),
+        reviewRequired,
+        fundsMoved: false,
+        note: "Stripe confirmó el pago; el reparto es un devengo contable y no una transferencia al creador.",
+      }, { headers: { "Cache-Control": "no-store" } });
+    } catch {
+      return Response.json({ error: "marketplace_webhook_processing_failed", retryable: true }, { status: 502 });
+    }
+  }
+
   if (!["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(eventType)) {
     return Response.json({ received: true, ignored: true, eventType });
   }
 
-  const data = event.data && typeof event.data === "object" ? event.data as Record<string, unknown> : {};
-  const subscription = data.object && typeof data.object === "object" ? data.object as Record<string, unknown> : {};
+  const subscription = object;
   const metadata = subscription.metadata && typeof subscription.metadata === "object"
     ? subscription.metadata as Record<string, unknown>
     : {};
