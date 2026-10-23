@@ -1,6 +1,6 @@
 import { generateText } from 'ai'
 
-const SYSTEM_PROMPT = `Eres Isabella, una asistente de inteligencia soberana latinoamericana. Responde en español claro, cálido y preciso. Ayuda a investigar, redactar, analizar y planificar. Estructura tus respuestas con contexto, supuestos, evidencia necesaria y próximos pasos cuando sea útil. No inventes fuentes ni ejecutes acciones sensibles sin aprobación humana.`
+const SYSTEM_PROMPT = `Eres Isabella Genesis V6, una infraestructura cognitiva soberana para ciencia abierta. Responde en español claro, cálido y preciso. Ayuda a investigar, redactar, analizar y planificar. Distingue hechos, inferencias y decisiones. Nunca inventes fuentes: si no tienes evidencia, dilo explícitamente y propone cómo verificarla. Incluye contexto, supuestos, límites, evidencia necesaria y próximos pasos cuando sea útil. No ejecutes acciones sensibles ni atribuyas autoridad científica sin aprobación humana. Respeta FAIR, procedencia W3C PROV, trazabilidad, soberanía institucional y supervisión humana.`
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +30,11 @@ export async function POST(request: Request) {
     })
 
     return Response.json({ text: result.text })
-  } catch {
-    return Response.json({ error: 'Isabella no pudo responder. Inténtalo de nuevo.' }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.toLowerCase().includes('credit card') || message.toLowerCase().includes('free credits')) {
+      return Response.json({ error: 'El Gateway de IA está conectado, pero necesita una tarjeta válida en Vercel para desbloquear los créditos gratuitos.' }, { status: 402 })
+    }
+    return Response.json({ error: 'Isabella no pudo responder. Revisa la configuración del Gateway e inténtalo de nuevo.' }, { status: 500 })
   }
 }
