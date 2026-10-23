@@ -39,7 +39,6 @@ export async function GET(request: Request) {
 
   try {
     const headers: HeadersInit = { Accept: "application/json" };
-    if (process.env.HF_TOKEN) headers.Authorization = `Bearer ${process.env.HF_TOKEN}`;
     const response = await fetch(`https://huggingface.co/api/${endpoint}?${params.toString()}`, {
       headers,
       cache: "no-store",
