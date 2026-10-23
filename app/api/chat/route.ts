@@ -45,16 +45,104 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Escribe un mensaje para Isabella.' }, { status: 400 })
     }
 
+    const provider = typeof (body as { provider?: unknown }).provider === 'string'
+      ? (body as { provider: string }).provider
+      : 'gateway'
+    const requestedModel = typeof (body as { modelId?: unknown }).modelId === 'string'
+      ? (body as { modelId: string }).modelId.trim().slice(0, 180)
+      : ''
+
+    if (provider === 'huggingface') {
+      const token = process.env.HF_TOKEN
+      if (!token) {
+        return Response.json({
+          error: 'Hugging Face Inference no está configurado. Añade HF_TOKEN como secreto de servidor; nunca lo expongas al navegador.',
+          code: 'HF_TOKEN_REQUIRED',
+        }, { status: 503 })
+      }
+      const model = requestedModel || process.env.HF_MODEL || 'openai/gpt-oss-120b:fireworks-ai'
+      if (!/^[a-zA-Z0-9._/-]+(?::[a-zA-Z0-9._-]+)?$/.test(model) || model.includes('..')) {
+        return Response.json({ error: 'Identificador de modelo no válido.' }, { status: 400 })
+      }
+
+      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...safeMessages,
+          ],
+          temperature: 0.7,
+          max_tokens: 1800,
+          stream: false,
+        }),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(45_000),
+      })
+
+      if (!response.ok) {
+        const status = response.status === 401 || response.status === 403 ? 503
+          : response.status === 429 ? 429
+          : response.status === 402 ? 402 : 502
+        return Response.json({
+          error: response.status === 401 || response.status === 403
+            ? 'Hugging Face rechazó la credencial o el acceso al modelo. Verifica HF_TOKEN, el proveedor y los permisos.'
+            : response.status === 429
+              ? 'Hugging Face alcanzó un límite de solicitudes. Intenta más tarde.'
+              : response.status === 402
+                ? 'El saldo o los créditos de inferencia de Hugging Face no son suficientes.'
+                : 'El proveedor de Hugging Face no pudo completar la solicitud.',
+          code: 'HF_INFERENCE_ERROR',
+          retryable: response.status === 429 || response.status >= 500,
+        }, { status, headers: response.status === 429 ? { 'Retry-After': '5' } : undefined })
+      }
+
+      const data = await response.json() as {
+        choices?: Array<{ message?: { content?: string | Array<{ type?: string; text?: string }> } }>;
+        model?: string;
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+      }
+      const content = data.choices?.[0]?.message?.content
+      const text = typeof content === 'string'
+        ? content
+        : Array.isArray(content) ? content.map((part) => part.text || '').join('') : ''
+      if (!text.trim()) return Response.json({ error: 'El proveedor devolvió una respuesta vacía.', code: 'EMPTY_MODEL_RESPONSE' }, { status: 502 })
+      return Response.json({
+        text,
+        provider: 'huggingface',
+        model: data.model || model,
+        usage: data.usage ?? null,
+      }, { headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    if (provider !== 'gateway') {
+      return Response.json({ error: 'Proveedor no admitido. Usa gateway o huggingface.' }, { status: 400 })
+    }
+
     const result = await generateText({
-      model: 'openai/gpt-6.1-sol-fast',
+      model: process.env.AI_GATEWAY_MODEL?.trim() || 'openai/gpt-6.1-sol-fast',
       system: SYSTEM_PROMPT,
       messages: safeMessages,
       temperature: 0.7,
     })
 
-    return Response.json({ text: result.text })
+    return Response.json({
+      text: result.text,
+      provider: 'gateway',
+      model: result.response.modelId || process.env.AI_GATEWAY_MODEL || 'openai/gpt-6.1-sol-fast',
+      usage: result.usage,
+    }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const message = error instanceof Error ? error.message : ''
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return Response.json({ error: 'El proveedor tardó demasiado en responder. Puedes cambiar de modelo o reintentar.', code: 'MODEL_TIMEOUT' }, { status: 504 })
+    }
     if (message.toLowerCase().includes('credit card') || message.toLowerCase().includes('free credits')) {
       return Response.json({ error: 'El Gateway de IA está conectado, pero necesita una tarjeta válida en Vercel para desbloquear los créditos gratuitos.' }, { status: 402 })
     }
