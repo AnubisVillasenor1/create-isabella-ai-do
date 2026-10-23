@@ -248,3 +248,45 @@ $$;
 
 revoke all on function public.apply_isabella_stripe_subscription_event(text,text,bigint,text,text,text,text,text,timestamptz) from public, anon, authenticated;
 grant execute on function public.apply_isabella_stripe_subscription_event(text,text,bigint,text,text,text,text,text,timestamptz) to service_role;
+
+create table if not exists public.isabella_creator_offers (
+  id uuid primary key default gen_random_uuid(),
+  creator_user_id text not null,
+  title text not null check (length(title) between 3 and 120),
+  description text not null check (length(description) between 1 and 2000),
+  price_cents bigint not null check (price_cents between 100 and 100000000),
+  currency char(3) not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
+  status text not null default 'published' check (status in ('draft','published','archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists isabella_creator_offers_public_idx
+  on public.isabella_creator_offers(status, created_at desc);
+create index if not exists isabella_creator_offers_creator_idx
+  on public.isabella_creator_offers(creator_user_id, created_at desc);
+
+create table if not exists public.isabella_marketplace_orders (
+  id uuid primary key default gen_random_uuid(),
+  checkout_session_id text not null unique,
+  source_event_id text not null unique,
+  offer_id uuid not null references public.isabella_creator_offers(id),
+  buyer_user_id text not null,
+  creator_user_id text not null,
+  gross_cents bigint not null check (gross_cents > 0),
+  currency char(3) not null check (currency ~ '^[A-Z]{3}$'),
+  revenue_run_id uuid references public.isabella_revenue_share_runs(id),
+  payment_status text not null default 'paid' check (payment_status in ('paid','refunded','disputed')),
+  created_at timestamptz not null default now()
+);
+create index if not exists isabella_marketplace_orders_buyer_idx
+  on public.isabella_marketplace_orders(buyer_user_id, created_at desc);
+create index if not exists isabella_marketplace_orders_creator_idx
+  on public.isabella_marketplace_orders(creator_user_id, created_at desc);
+
+alter table public.isabella_creator_offers enable row level security;
+alter table public.isabella_marketplace_orders enable row level security;
+revoke all on public.isabella_creator_offers, public.isabella_marketplace_orders from anon, authenticated;
+grant select, insert, update, delete on public.isabella_creator_offers, public.isabella_marketplace_orders to service_role;
+
+comment on table public.isabella_creator_offers is 'Creator marketplace offers. All reads/writes go through server routes with identity and entitlement checks.';
+comment on table public.isabella_marketplace_orders is 'Verified Stripe Checkout purchases; linked revenue run is an accrual, not a payout.';
