@@ -11,6 +11,7 @@ create table if not exists public.isabella_commerce_subscriptions (
   provider_customer_id text,
   provider_subscription_id text unique,
   current_period_end timestamptz,
+  provider_event_created bigint not null default 0,
   updated_at timestamptz not null default now()
 );
 create index if not exists isabella_commerce_subscriptions_user_idx
@@ -174,3 +175,76 @@ grant execute on function public.record_isabella_revenue_accrual(text,text,bigin
 
 comment on table public.isabella_revenue_share_runs is 'Revenue share accruals; not a payment processor, payout system, or WORM-certified ledger.';
 comment on function public.record_isabella_revenue_accrual(text,text,bigint,text,jsonb) is 'Idempotently records balanced creator revenue accruals after a trusted server verifies a provider event. Never transfers funds.';
+
+create table if not exists public.isabella_commerce_provider_events (
+  event_id text primary key,
+  provider text not null check (provider in ('stripe')),
+  event_type text not null,
+  event_created bigint not null,
+  processed_at timestamptz not null default now()
+);
+alter table public.isabella_commerce_provider_events enable row level security;
+revoke all on public.isabella_commerce_provider_events from anon, authenticated;
+grant select, insert, update, delete on public.isabella_commerce_provider_events to service_role;
+
+create or replace function public.apply_isabella_stripe_subscription_event(
+  p_event_id text,
+  p_event_type text,
+  p_event_created bigint,
+  p_user_id text,
+  p_plan_id text,
+  p_subscription_id text,
+  p_customer_id text,
+  p_status text,
+  p_period_end timestamptz
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_inserted integer;
+  v_applied integer;
+begin
+  if p_event_id is null or length(p_event_id) < 8 or length(p_event_id) > 200
+    or p_event_created is null or p_event_created < 1
+    or p_user_id is null or length(p_user_id) < 1 or length(p_user_id) > 160
+    or p_plan_id not in ('isabella_plus','enterprise')
+    or p_subscription_id is null or length(p_subscription_id) < 1
+    or p_status not in ('active','trialing','past_due','canceled','inactive') then
+    raise exception 'INVALID_SUBSCRIPTION_EVENT' using errcode = '22023';
+  end if;
+
+  insert into public.isabella_commerce_provider_events(event_id, provider, event_type, event_created)
+  values (p_event_id, 'stripe', p_event_type, p_event_created)
+  on conflict (event_id) do nothing;
+  get diagnostics v_inserted = row_count;
+  if v_inserted = 0 then
+    return jsonb_build_object('duplicateEvent', true, 'subscriptionUpdated', false);
+  end if;
+
+  insert into public.isabella_commerce_subscriptions(
+    user_id, plan_id, status, provider, provider_customer_id,
+    provider_subscription_id, current_period_end, provider_event_created, updated_at
+  ) values (
+    p_user_id, p_plan_id, p_status, 'stripe', p_customer_id,
+    p_subscription_id, p_period_end, p_event_created, now()
+  )
+  on conflict (provider_subscription_id) do update set
+    user_id = excluded.user_id,
+    plan_id = excluded.plan_id,
+    status = excluded.status,
+    provider = excluded.provider,
+    provider_customer_id = excluded.provider_customer_id,
+    current_period_end = excluded.current_period_end,
+    provider_event_created = excluded.provider_event_created,
+    updated_at = now()
+  where public.isabella_commerce_subscriptions.provider_event_created < excluded.provider_event_created;
+  get diagnostics v_applied = row_count;
+
+  return jsonb_build_object('duplicateEvent', false, 'subscriptionUpdated', v_applied = 1);
+end;
+$$;
+
+revoke all on function public.apply_isabella_stripe_subscription_event(text,text,bigint,text,text,text,text,text,timestamptz) from public, anon, authenticated;
+grant execute on function public.apply_isabella_stripe_subscription_event(text,text,bigint,text,text,text,text,text,timestamptz) to service_role;
