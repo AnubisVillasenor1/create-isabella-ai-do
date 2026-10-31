@@ -1,0 +1,97 @@
+# LICENCIA PROPIETARIA — TODOS LOS DERECHOS RESERVADOS
+
+Copyright (c) 2026 **TAMV ONLINE ENTERPRISE**
+Autor y titular de los derechos: **Edwin Oswaldo Castillo Trejo (Anubis Villaseñor)**
+
+Obra amparada: el contenido de este repositorio (`ISABELLA-VERSION-TERMINUS-V6`) —el
+runtime Isabella Villaseñor AI Génesis Ω∞, TINA / Genesis, el protocolo de gobernanza
+GAME OVER (UAGP-1) y el TAMV Kaos Audio System, junto con su código fuente,
+documentación, esquemas, especificaciones, identidad territorial y marcas— en conjunto
+«el Software».
+
+## 1. Ninguna licencia se concede por el hecho de publicar
+
+El Software es creación y propiedad intelectual de su autor. Leerlo, clonarlo o
+descargarlo no otorga derecho alguno. Todo uso —total o parcial, temporal o perpetuo,
+directo o indirecto— requiere el consentimiento previo, expreso y por escrito del
+titular, formalizado en un acuerdo de licencia individual. La ausencia de ese acuerdo
+significa que no existe permiso.
+
+## 2. Actos reservados al titular
+
+Sin dicho consentimiento queda prohibido, entre otros:
+
+1. Reproducir, copiar, adaptar o transformar el Software, en todo o en parte.
+2. Crear obras derivadas, incluida la reimplementación de sus arquitecturas,
+   algoritmos, contratos de dominio, registros de capacidad o superficies de API.
+3. Distribuir, publicar, comunicar públicamente, poner a disposición, sublicenciar,
+   vender, alquilar, ceder o incorporar el Software a otro producto.
+4. Desplegarlo o ejecutarlo como producto, servicio interno o servicio gestionado
+   (SaaS, endpoints públicos o privados, contenedores, funciones serverless o agentes).
+5. Extraer, indexar, minar o usar el Software o su documentación para entrenar,
+   ajustar, afinar, alinear o evaluar modelos de inteligencia artificial, con cualquier
+   fin y por cualquier medio.
+6. Desensamblar, descompilar o aplicar ingeniería inversa con el propósito de eludir
+   las restricciones de esta licencia.
+7. Usar «Isabella Villaseñor», «TINA», «Génesis Ω∞», «TAMV ONLINE», «Kaos Audio
+   System», «GAME OVER / UAGP-1», sus logotipos y versiones estilísticas, o afirmar y
+   sugerir patrocinio, afiliación, autoría u origen.
+8. Presentar un derivado como el sistema original de TAMV ONLINE.
+
+## 3. Obligaciones que subsisten en toda copia expresamente autorizada
+
+1. Conservar íntegros este archivo `LICENSE`, `NOTICE.md` y las cabeceras de copyright
+   de los archivos fuente.
+2. No eliminar ni debilitar la superficie de evidencia del sistema:
+   `SPECIFIED ≠ IMPLEMENTED ≠ TESTED ≠ PRODUCTION` y
+   `CAPABILITY ≠ AUTHORITY ≠ EXECUTION ≠ EVIDENCE` son parte del contrato del sistema,
+   no de su decoración.
+3. Mantener los avisos, atribuciones y licencias de las dependencias y del material de
+   terceros.
+
+## 4. Dependencias y material de terceros
+
+Cada dependencia conserva la licencia que le dio su propio titular (MIT, Apache-2.0,
+BSD, ISC, dominio público u otra). Nada en este archivo modifica, reemplaza ni
+restringe esos términos, ni otorga al titular derechos sobre activos que no son suyo.
+El repositorio documenta las reimplementaciones basadas en código abierto de terceros
+en `docs/history/audits.md` y en las cabeceras de los archivos correspondientes.
+
+## 5. Sin garantía y limitación de responsabilidad
+
+El Software se proporciona «tal cual», sin garantía de ningún tipo, expresa o
+implícita, incluidas las de comerciabilidad, adecuación a un propósito específico,
+exactitud, no infracción y disponibilidad en producción. Que una capacidad esté
+especificada, implementada o probada no implica que esté certificada, contratada ni
+garantizada. El titular no responderá por daños directos, indirectos, incidentales,
+especiales, ejemplares o consecuenciales derivados del uso o de la imposibilidad de
+uso del Software, incluso si se le advirtió de su posibilidad.
+
+## 6. Alcance temporal de este texto
+
+Este aviso sustituye, con efectos desde el commit en que se publicó, al texto MIT que
+figuraba en `LICENSE` en las versiones anteriores de este repositorio.
+
+- Quien haya obtenido legítimamente una versión anterior bajo el texto MIT conserva,
+  respecto de esa versión concreta, los derechos que aquel texto le otorgaba. Esta
+  sustitución es prospectiva: no retira permisos ya concedidos por escrito y no persigue
+  usos hechos conforme a ellos.
+- El repositorio en su estado actual, y todo lo publicado a partir de este commit,
+  queda íntegramente bajo este aviso propietario. Ninguna versión anterior puede
+  invocarse como autorización para usar el estado presente.
+
+## 7. Jurisdicción y naturaleza del documento
+
+Esta licencia se interpreta conforme a la legislación de los Estados Unidos Mexicanos,
+en particular la Ley Federal del Derecho de Autor, y se somete a los tribunales
+federales competentes del estado de Hidalgo, México, sin perjuicio de las acciones que
+procedan en otras jurisdicciones donde se produzca la infracción.
+
+Este archivo expresa la voluntad del titular sobre su obra y no sustituye asesoría
+jurídica profesional. Un acuerdo de licencia, cesión, coexclusividad o uso comercial se
+formaliza por escrito y produce efectos sólo desde su firma.
+
+## 8. Contacto para licencias y uso
+
+Solicitudes de licencia, uso, integración o colaboración: a través del titular,
+TAMV ONLINE ENTERPRISE. Ver la sección Contacto de `NOTICE.md`.

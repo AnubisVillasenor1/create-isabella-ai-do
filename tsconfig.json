@@ -1,33 +1,63 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "target": "ES6",
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/lib/*": ["./src/lib/lib/*"],
+      "@/*": ["./src/*"]
+    },
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": true,
+    "noEmit": true
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "src",
+    "test",
+    "vitest.config.ts",
+    "netlify/functions"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "src/lib",
+    "src/authz-runtime",
+    "src/hypercore-runtime",
+    "src/components",
+    "src/hooks",
+    "src/core",
+    "src/cognition/moe",
+    "src/cognition/rag",
+    "src/memory/mesh",
+    "src/learning/federated",
+    "src/observability",
+    "src/federation/tamv",
+    "src/pipeline/hyper-turbo",
+    "src/ui/integration.ts",
+    "src/economy/revenue-fabric/storage.ts",
+    "src/routes/revenue-fabric.ts",
+    "src/multimodal",
+    "src/security/bookpi-integrity.ts",
+    "src/security/http-hardening.ts",
+    "src/security/pqc",
+    "src/security/secret-scanner.ts",
+    "node_modules",
+    "dist"
+  ]
 }

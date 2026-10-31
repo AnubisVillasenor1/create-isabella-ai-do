@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"noEmit": true},
+  "include": [
+    "src/cognition/moe",
+    "src/cognition/rag",
+    "src/memory/mesh",
+    "src/learning/federated",
+    "src/observability",
+    "src/federation/tamv",
+    "src/pipeline/hyper-turbo",
+    "src/ui/integration.ts",
+    "src/economy/revenue-fabric/storage.ts",
+    "src/routes/revenue-fabric.ts",
+    "src/multimodal",
+    "src/security/bookpi-integrity.ts",
+    "src/security/http-hardening.ts",
+    "src/security/pqc",
+    "src/security/secret-scanner.ts",
+    "src/security/zero-trust",
+    "src/governance/cognitive"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

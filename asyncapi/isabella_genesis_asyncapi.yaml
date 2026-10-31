@@ -1,0 +1,89 @@
+# state: draft | engine-generated — Contrato AsyncAPI de eventos de skills Ω∞ GENESIS.
+# Describe los CANALES de eventos que produce la capa Genesis y que modela en memoria
+# `src/omega/genesis/event-bus.ts` (SkillEventBus). NO declara brokers reales (Kafka/NATS/
+# RabbitMQ): es la especificación de forma de mensaje y tópicos lógicos. La derivación contra
+# deriva la hace `src/omega/genesis/spec-contract.ts` (checkAsyncApiDrift). Un canal especificado
+# es una capacidad documentada, NO una garantía de entrega durable (AGENTS.md §1). Los nombres de
+# canal coinciden EXACTAMENTE con `SKILL_CHANNELS`.
+asyncapi: 3.0.0
+info:
+  title: Isabella Villaseñor AI — Ω∞ GENESIS Skill Events
+  version: 1.0.0
+  description: >-
+    Corriente de eventos de los cinco skills fundacionales. Cada evento documenta que una
+    inteligencia sugirió, calculó o evaluó; NUNCA que autorizó o ejecutó un efecto gobernado.
+  x-maturity: draft
+  x-engine-generated: true
+channels:
+  isabella.orion.provenance:
+    title: ORION provenance events
+    messages:
+      skillEvent:
+        $ref: '#/components/messages/SkillEvent'
+  isabella.sophia.knowledge:
+    title: SOPHIA knowledge events
+    messages:
+      skillEvent:
+        $ref: '#/components/messages/SkillEvent'
+  isabella.argus.verification:
+    title: ARGUS verification events
+    messages:
+      skillEvent:
+        $ref: '#/components/messages/SkillEvent'
+  isabella.mnemos.memory:
+    title: MNEMOS memory events
+    messages:
+      skillEvent:
+        $ref: '#/components/messages/SkillEvent'
+  isabella.lumen.authority:
+    title: LUMEN authority events
+    messages:
+      skillEvent:
+        $ref: '#/components/messages/SkillEvent'
+operations:
+  publishSkillEvent:
+    action: send
+    channel:
+      $ref: '#/channels/isabella.orion.provenance'
+    summary: Publica un evento de skill en un canal Genesis (en memoria; sin broker real).
+components:
+  messages:
+    SkillEvent:
+      name: SkillEvent
+      title: Sobre común de un evento de skill
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SkillEventPayload'
+  schemas:
+    SkillEventPayload:
+      type: object
+      required: [channel, type, traceId, skillId, payload, emittedAt]
+      properties:
+        channel:
+          type: string
+          enum:
+            - isabella.orion.provenance
+            - isabella.sophia.knowledge
+            - isabella.argus.verification
+            - isabella.mnemos.memory
+            - isabella.lumen.authority
+        type:
+          type: string
+          enum: [proposed, computed, evaluated, sealed, denied]
+        traceId:
+          type: string
+          minLength: 1
+        skillId:
+          type: string
+          minLength: 1
+        payload:
+          type: object
+          additionalProperties:
+            oneOf:
+              - { type: string }
+              - { type: number }
+              - { type: boolean }
+              - { type: 'null' }
+        emittedAt:
+          type: string
+          format: date-time

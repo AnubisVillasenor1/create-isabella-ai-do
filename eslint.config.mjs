@@ -1,12 +1,102 @@
-import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
-import prettier from 'eslint-config-prettier'
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['.next/**', 'node_modules/**', 'public/**', '.archive/**', '*.config.mjs'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '*.config.*',
+      '*.mjs',
+      '*.cjs',
+      'src/lib/**',
+      'src/authz-runtime/**',
+      'src/hypercore-runtime/**',
+      'src/components/**',
+      'src/hooks/**',
+      'src/core/**',
+      'src/cognition/moe/**',
+      'src/cognition/rag/**',
+      'src/memory/mesh/**',
+      'src/learning/federated/**',
+      'src/observability/**',
+      'src/federation/tamv/**',
+      'src/pipeline/hyper-turbo/**',
+      'src/ui/app.js',
+      'src/ui/chat-plus.js',
+      'src/ui/integration.ts',
+      'src/economy/revenue-fabric/storage.ts',
+      'src/routes/revenue-fabric.ts',
+      'src/multimodal/**',
+      'src/security/bookpi-integrity.ts',
+      'src/security/http-hardening.ts',
+      'src/security/pqc/**',
+      'src/security/secret-scanner.ts',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  prettier,
-)
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json', './tsconfig.build.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/consistent-type-imports': 'off',
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-control-regex': 'off',
+      'no-console': 'off',
+      'prefer-const': 'off',
+      'no-useless-escape': 'off',
+      'no-undef': 'off',
+      'no-misleading-character-class': 'off',
+    },
+  },
+  {
+    files: [
+      'src/ui/platform/**/*.js',
+      'src/ui/cognition-client.js',
+      'src/ui/nexus.js',
+      'src/ui/universe-map.js',
+    ],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        crypto: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        Blob: 'readonly',
+        AbortController: 'readonly',
+        TextDecoder: 'readonly',
+        performance: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        IntersectionObserver: 'readonly',
+        ResizeObserver: 'readonly',
+        MutationObserver: 'readonly',
+        Element: 'readonly',
+        Audio: 'readonly',
+        SpeechSynthesisUtterance: 'readonly',
+      },
+    },
+    rules: {
+      'no-control-regex': 'off',
+    },
+  },
+  prettierConfig
+);

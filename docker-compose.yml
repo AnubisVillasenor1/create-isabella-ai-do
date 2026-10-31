@@ -1,0 +1,244 @@
+# Compose Specification: the obsolete top-level `version` key is intentionally omitted.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: isabella-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: isabella_db
+      POSTGRES_USER: isabella_admin
+      # Fail closed: the password must be defined in the untracked .env file.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: >
+      postgres
+      -c shared_buffers=4GB
+      -c effective_cache_size=12GB
+      -c maintenance_work_mem=1GB
+      -c work_mem=32MB
+      -c max_connections=200
+      -c wal_buffers=64MB
+      -c max_wal_size=8GB
+      -c min_wal_size=2GB
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c log_statement=none
+      -c log_min_duration_statement=1000
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # initdb.d runs top-level *.sql in name order: schema first, then every versioned migration.
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/00-schema.sql:ro
+      - ./infra/db/migrations/001_create_bookpi_events.sql:/docker-entrypoint-initdb.d/10-001_create_bookpi_events.sql:ro
+      - ./infra/db/migrations/002_bookpi_canonical_immutability.sql:/docker-entrypoint-initdb.d/10-002_bookpi_canonical_immutability.sql:ro
+      - ./infra/db/migrations/003_commerce_tenant_isolation_rls.sql:/docker-entrypoint-initdb.d/10-003_commerce_tenant_isolation_rls.sql:ro
+      - ./infra/db/migrations/004_commerce_webhook_idempotency.sql:/docker-entrypoint-initdb.d/10-004_commerce_webhook_idempotency.sql:ro
+      - ./infra/db/migrations/005_commerce_persistent_subscriptions.sql:/docker-entrypoint-initdb.d/10-005_commerce_persistent_subscriptions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U isabella_admin -d isabella_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: isabella-ollama
+    restart: always
+    # Optional local inference: `docker compose --profile local-inference up -d`.
+    # The runtime starts without it and falls back to the configured remote provider.
+    profiles: ["local-inference"]
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_storage:/root/.ollama
+    environment:
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "3"
+      OLLAMA_KEEP_ALIVE: "24h"
+    deploy:
+      resources:
+        limits:
+          memory: 18G
+        reservations:
+          memory: 12G
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.96.0
+    container_name: isabella-metrics
+    restart: always
+    ports:
+      - "127.0.0.1:8428:8428"
+    volumes:
+      - vm_data:/victoria-metrics-data
+    command:
+      - --storageDataPath=/victoria-metrics-data
+      - --retentionPeriod=30d
+      - --httpListenAddr=:8428
+      - --memory.allowedPercent=60
+      - --search.maxPointsPerTimeseries=100000
+      - --maxLabelsPerTimeseries=30
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: isabella-crowdsec
+    restart: always
+    environment:
+      COLLECTIONS: "crowdsecurity/linux crowdsecurity/caddy crowdsecurity/postgres crowdsecurity/redis crowdsecurity/ssh"
+      CROWDSEC_AGENT_LDAP: "false"
+    volumes:
+      - crowdsec_config:/etc/crowdsec
+      - crowdsec_data:/var/lib/crowdsec/data
+      - /var/log:/var/log:ro
+      - /run/crowdsec:/run/crowdsec
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    depends_on:
+      - caddy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: isabella-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    environment:
+      ACME_AGREE: "true"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  otel:
+    image: otel/opentelemetry-collector-contrib:0.90.0
+    container_name: isabella-otel
+    restart: always
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8888:8888"
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: isabella-core
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      HOST: 0.0.0.0
+      # The image entrypoint applies pending migrations against DATABASE_URL (fail closed).
+      RUN_MIGRATIONS: "1"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:8080}
+      # Explicit operator opt-in: prompts and bounded history may leave the node to the listed
+      # free providers, tried in this order (llm7, then pollinations).
+      # Remove these lines (or set ISABELLA_KEYLESS_FREE_PROVIDER=off) to disable keyless inference.
+      ISABELLA_KEYLESS_FREE_PROVIDER: llm7,pollinations
+      KEYLESS_FREE_PROVIDER_TIMEOUT_MS: "30000"
+      CHAT_CHAIN_BUDGET_MS: "45000"
+      # Explicit operator opt-in for the keyless neural voice fallback (spoken text leaves the node).
+      ISABELLA_KEYLESS_TTS: google
+      ISABELLA_KEYLESS_TTS_MAX_CHARS: "1200"
+      # Never commit the connection string: define DATABASE_URL in the untracked .env, e.g.
+      # postgresql://isabella_admin:<POSTGRES_PASSWORD>@postgres:5432/isabella_db
+      DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL in .env, matching POSTGRES_PASSWORD}
+      OLLAMA_BASE_URL: http://ollama:11434
+      VICTORIA_METRICS_URL: http://victoriametrics:8428
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel:4318
+      CROWDSEC_LAPI_URL: http://crowdsec:8080
+      BOOKPI_LEDGER_PATH: /app/data/bookpi-ledger.jsonl
+      # Durable local stores live on the writable volume, not on the read-only root.
+      ISABELLA_API_KEY_STORE: file
+      ISABELLA_API_KEY_STORE_PATH: /app/data/api-keys.json
+      ISABELLA_FEDERATION_STORE: file
+      ISABELLA_FEDERATION_STORE_PATH: /app/data/federation.json
+    user: "10001:10001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./src:/app/src:ro
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - bookpi-data:/app/data
+      - app-logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  ollama_storage:
+  vm_data:
+  crowdsec_config:
+  crowdsec_data:
+  caddy_data:
+  caddy_config:
+  bookpi-data:
+  app-logs:

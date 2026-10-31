@@ -1,0 +1,182 @@
+# state: draft | engine-generated — Contrato abierto del Núcleo Económico Soberano (Documento §4.3).
+# Este OpenAPI modela la SUPERFICIE ECONÓMICA de GENESIS Ω∞ tal como la implementan los
+# módulos REALES `src/economy/settlement.ts` y `src/economy/reconciliation.ts`. NO declara
+# endpoints en producción: el inventario de rutas del runtime está CONGELADO y aquí NO se
+# añadió ninguna ruta HTTP. El cálculo económico es una CAPACIDAD verificada por tests, no una
+# autoridad ni una ejecución: BookPI/ledger es la verdad, CROWN autoriza, y NINGÚN payout se
+# mueve desde este contrato (no se invoca Stripe). Reconciliación riel↔ledger es detectiva, no
+# correctiva (AGENTS.md §1 y §4).
+openapi: 3.1.0
+info:
+  title: Isabella Villaseñor AI — Núcleo Económico Soberano (BookPI · Liquidación · Conciliación)
+  version: 1.0.0
+  description: >-
+    Contrato del ciclo de liquidación y payouts en unidades menores (bigint), con maduración
+    temporal y puertas fail-closed (KYC, mínimo de retiro, saldo suficiente), y conciliación
+    diaria entre el riel de pagos y el ledger económico. Todos los montos son enteros en
+    unidades menores; nunca flotantes. Ninguna operación autoriza ni transfiere dinero real.
+  x-maturity: draft
+  x-engine-generated: true
+  x-money-movement: none
+  x-boundaries: >-
+    Divergencias documentadas respecto del documento fuente: (1) se conserva SHA-256 para
+    coherencia con el ledger/anchor reales, no SHA3-512; (2) la firma poscuántica ML-DSA del
+    documento era un HMAC disfrazado de PQC y NO se implementa — BLOCKED_ENVIRONMENT; (3) el
+    riel Stripe (Accounts/Checkout/Transfers/Payouts) se deja como capa externa no cableada.
+servers:
+  - url: /economy
+    description: Prefijo lógico del dominio económico (no un host de producción).
+security:
+  - crownScope: []
+paths:
+  /settlements/compute:
+    post:
+      operationId: computeSettlement
+      summary: Calcula el desglose exacto de una liquidación (no mueve fondos)
+      description: >-
+        Envuelve `computeSettlementBreakdown`. Invariante: platformFee + reserve + affiliate +
+        royaltyPool + creatorNet === grossMinor. Rechaza sobreasignación de basis points y
+        bolsas de regalías sin beneficiarios.
+      riskTier: LOW
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementComputeRequest'
+      responses:
+        '200':
+          description: Desglose exacto calculado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettlementBreakdown'
+  /settlements/{settlementId}/mature:
+    post:
+      operationId: matureSettlement
+      summary: Madura una liquidación al vencer la ventana de reserva/disputa
+      description: >-
+        Transición held→matured. Acredita el neto del creador en su saldo disponible de la
+        bóveda interna (contabilidad), NO en una cuenta bancaria. Idempotente por settlement.
+      riskTier: MEDIUM
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Liquidación madurada y saldo acreditado internamente.
+  /payouts/request:
+    post:
+      operationId: requestPayout
+      summary: Solicita un payout tras puertas fail-closed (no transfiere)
+      description: >-
+        Puertas en orden: KYC/KYB verificado, monto >= mínimo de retiro, saldo disponible
+        suficiente. Si alguna falla, NO se crea el payout y NO se drena la bóveda. El evento
+        se sella como payout.requested en el ledger. La transferencia real por el riel Stripe
+        es una capa externa no incluida en este contrato.
+      riskTier: HIGH
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRequest'
+      responses:
+        '202':
+          description: Solicitud aceptada y sellada (pendiente del riel externo).
+        '402':
+          description: Saldo insuficiente o por debajo del mínimo de retiro.
+        '403':
+          description: Falta verificación KYC/KYB.
+        '409':
+          description: Conflicto de idempotencia.
+  /reconciliation/run:
+    post:
+      operationId: runReconciliation
+      summary: Concilia el riel de pagos contra el ledger económico
+      description: >-
+        Función pura y agnóstica del proveedor. Reporta divergencias (missing_in_provider,
+        missing_in_ledger, amount_mismatch, currency_mismatch). Detecta; la acción correctiva
+        es humana y aprobada.
+      riskTier: LOW
+      responses:
+        '200':
+          description: Informe de conciliación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationReport'
+components:
+  securitySchemes:
+    crownScope:
+      type: apiKey
+      in: header
+      name: X-CROWN-Scope
+      description: Autoría CROWN requerida para cualquier efecto gobernado (no implementado aquí).
+  schemas:
+    MinorAmount:
+      type: string
+      pattern: '^-?[0-9]+$'
+      description: Monto en unidades menores (entero), representado como string para no perder precisión.
+    SettlementComputeRequest:
+      type: object
+      required: [grossMinor, currency]
+      properties:
+        grossMinor: { $ref: '#/components/schemas/MinorAmount' }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        policy:
+          type: object
+          properties:
+            platformFeeBps: { type: integer, minimum: 0, maximum: 10000 }
+            reserveBps: { type: integer, minimum: 0, maximum: 10000 }
+            royaltyBps: { type: integer, minimum: 0, maximum: 10000 }
+            affiliateBps: { type: integer, minimum: 0, maximum: 10000 }
+    SettlementBreakdown:
+      type: object
+      required: [grossMinor, currency, platformFeeMinor, reserveMinor, creatorNetMinor]
+      properties:
+        grossMinor: { $ref: '#/components/schemas/MinorAmount' }
+        currency: { type: string }
+        platformFeeMinor: { $ref: '#/components/schemas/MinorAmount' }
+        reserveMinor: { $ref: '#/components/schemas/MinorAmount' }
+        affiliateCommissionMinor: { $ref: '#/components/schemas/MinorAmount' }
+        royaltyPoolMinor: { $ref: '#/components/schemas/MinorAmount' }
+        creatorNetMinor: { $ref: '#/components/schemas/MinorAmount' }
+    PayoutRequest:
+      type: object
+      required: [creatorId, amountMinor, currency, kycVerified]
+      properties:
+        creatorId: { type: string }
+        amountMinor: { $ref: '#/components/schemas/MinorAmount' }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        kycVerified: { type: boolean }
+    ReconciliationReport:
+      type: object
+      required: [status, ledgerTotalMinor, providerTotalMinor, deltaMinor]
+      properties:
+        status: { type: string, enum: [reconciled, divergent] }
+        reconciledKeys:
+          type: array
+          items: { type: string }
+        divergences:
+          type: array
+          items:
+            type: object
+            properties:
+              kind:
+                type: string
+                enum: [missing_in_provider, missing_in_ledger, amount_mismatch, currency_mismatch]
+              idempotencyKey: { type: string }
+              ledgerAmountMinor: { type: [string, 'null'] }
+              providerAmountMinor: { type: [string, 'null'] }
+        ledgerTotalMinor: { $ref: '#/components/schemas/MinorAmount' }
+        providerTotalMinor: { $ref: '#/components/schemas/MinorAmount' }
+        deltaMinor: { $ref: '#/components/schemas/MinorAmount' }
+        reconciledAt: { type: string, format: date-time }

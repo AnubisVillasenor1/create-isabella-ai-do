@@ -1,0 +1,123 @@
+% state: draft | engine-generated — Especificación canónica Ω∞ GENESIS (LaTeX).
+% Documento vivo de la capa GENESIS implementada en `src/omega/genesis/*`. Refleja la
+% implementación TypeScript REAL del repositorio, NO la referencia Python de los documentos
+% adjuntos. Toda afirmación de capacidad está separada de autoridad/ejecución/evidencia conforme
+% a AGENTS.md §1. Compilar con: latexmk -pdf isabella_genesis_omega.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=2.4cm}
+
+\title{\bfseries Isabella Villaseñor AI --- Especificación \(\Omega\infty\) GENESIS}
+\author{Capa GENESIS (engine-generated, state: draft)}
+\date{Octubre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Esta especificación describe la capa \(\Omega\infty\) GENESIS implementada en el repositorio
+TypeScript como \texttt{src/omega/genesis/*}. GENESIS reexpresa los módulos cognitivos del
+sistema como \emph{capas nativas} organizadas en dos ejes: seis \textbf{macrodominios} (el
+``qué'') y doce \textbf{capas de ejecución} \(L0\)--\(L11\) (el ``cómo''). El principio
+rector es la separación \textbf{CAPACIDAD \(\neq\) AUTORIDAD \(\neq\) EJECUCIÓN \(\neq\)
+EVIDENCIA \(\neq\) APRENDIZAJE \(\neq\) PRODUCCIÓN}: la inteligencia sugiere, calcula y
+evalúa; la conciencia humana decide, aprueba, arbitra y ejecuta.
+\end{abstract}
+
+\section{Axiom \(\Omega\) y ecuación de legitimidad}
+Un acto es gobernable solo si su \emph{legitimidad} no se anula. Con ocho factores binarios
+\(f_i \in \{0,1\}\) (identidad, autoridad, política, evidencia, ejecución, trazabilidad,
+gobernanza, supervisión humana):
+\[
+  \mathcal{L} = \prod_{i=1}^{8} f_i, \qquad \mathcal{L}=0 \Rightarrow \texttt{DENY}.
+\]
+La puerta de admisión \emph{Zero Trust} (capa \(L1\)) es el producto de cinco factores
+\(I \times A \times C \times P \times E\), evaluada antes de conceder contexto.
+
+\section{Pila de doce capas (\(L0\)--\(L11\))}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Capa} & \textbf{Nombre} & \textbf{Componente Isabella} \\
+\midrule
+\(L0\) & Hardware Sovereignty & \texttt{infra/, deploy/k8s} \\
+\(L1\) & Trust Fabric & \texttt{src/identity, src/omega/native} \\
+\(L2\) & Fast Lane Cognitive Bus & \texttt{genesis/fastlane-v2.ts} \\
+\(L3\) & Tool Orchestration & \texttt{src/tools, genesis/tool-expansion.ts} \\
+\(L4\) & Multi-Agent Society & \texttt{genesis/agent-society.ts} \\
+\(L5\) & Symbolic Reasoning & \texttt{genesis/hybrid-reasoning.ts} \\
+\(L6\) & Neuro-Semantic Mesh & \texttt{genesis/knowledge-mesh.ts} \\
+\(L7\) & Executive Memory (FEM) & \texttt{genesis/fem.ts} \\
+\(L8\) & Strategic Planning & \texttt{genesis/meta-orchestrator.ts} \\
+\(L9\) & Self-Evaluation & \texttt{genesis/observability.ts} \\
+\(L10\) & Evolution Engine & \texttt{genesis/controlled-evolution.ts} \\
+\(L11\) & Governance Core & \texttt{src/crown, src/bookpi} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Presupuesto cognitivo}
+El orquestador metacognitivo reparte un presupuesto sobre seis dimensiones
+(reasoning, evidence, redaction, audit, verification, memory) con enteros que suman
+exactamente 100 por el método del resto más grande. Para objetivos de alto riesgo se
+refuerzan audit y verification (\(\times 1.5\)) antes de renormalizar.
+
+\section{Memoria Ejecutiva Fractal (FEM)}
+Seis horizontes de memoria enrutados por duración: Conversacional (Redis), Operacional
+(PostgreSQL), Táctica (pgvector), Estratégica (Neo4j), Institucional (Knowledge Graph) y
+Canónica (BookPI, inmutable). El adaptador por defecto es volátil; la durabilidad requiere
+enlazar el backend real.
+
+\section{Evolución controlada}
+Principio innegociable:
+\[
+  \text{self-improvement} \neq \text{self-modification}.
+\]
+La máquina de estados \texttt{simulate \(\to\) audit \(\to\) validate \(\to\) authorize
+\(\to\) apply \(\to\) record} rechaza toda auto-modificación estructural y no aplica ningún
+cambio sin autorización humana verificada y reversibilidad declarada.
+
+\section{Anclaje de evidencia (BookPI)}
+La cadena SHA-256 del libro mayor se complementa con una raíz de Merkle y pruebas de
+inclusión \(O(\log n)\) por evento (\texttt{src/bookpi/anchor.ts}), cerrando la laguna
+\texttt{merkleRoot: null} de la instantánea. La firma post-cuántica (ML-DSA/SLH-DSA) y el
+hash SHA3-512 especificados en el documento canónico permanecen \texttt{BLOCKED\_ENVIRONMENT}
+mientras no exista proveedor PQC real; no se fabrican.
+
+\section{Los veinte incrementos GENESIS}
+\begin{enumerate}[label=\arabic*.]
+  \item Pila de 12 capas (\texttt{layers.ts}).
+  \item Fastlane semántico adaptativo (\texttt{fastlane-v2.ts}).
+  \item Orquestador metacognitivo (\texttt{meta-orchestrator.ts}).
+  \item Sociedad de microagentes (\texttt{agent-society.ts}).
+  \item Memoria Ejecutiva Fractal (\texttt{fem.ts}).
+  \item Malla de conocimiento (\texttt{knowledge-mesh.ts}).
+  \item Razonamiento híbrido (\texttt{hybrid-reasoning.ts}).
+  \item Puerta Zero Trust (\texttt{zero-trust.ts}).
+  \item Evolución controlada (\texttt{controlled-evolution.ts}).
+  \item Gemelo digital cognitivo (\texttt{cognitive-twin.ts}).
+  \item Observabilidad cognitiva (\texttt{observability.ts}).
+  \item Expansión gobernada de herramientas a 250 (\texttt{tool-expansion.ts}).
+  \item Anclaje Merkle del libro mayor (\texttt{bookpi/anchor.ts}).
+  \item Bus de eventos AsyncAPI (\texttt{event-bus.ts}).
+  \item Contrato anti-deriva spec\(\leftrightarrow\)código (\texttt{spec-contract.ts}).
+  \item Convergencia: turno cognitivo gobernado (\texttt{convergence.ts}).
+  \item Barril de la capa (\texttt{index.ts}).
+  \item Contrato abierto OpenAPI (\texttt{openapi/}).
+  \item Contrato de eventos AsyncAPI (\texttt{asyncapi/}).
+  \item Esta especificación canónica (\texttt{docs/}).
+\end{enumerate}
+
+\section{Fronteras honestas}
+Ningún módulo de GENESIS mueve dinero, firma post-cuántico, abre red ni ejecuta efectos
+gobernados. Un test verde sobre estos módulos demuestra \emph{capacidad computacional}, no
+una facultad, no autoridad, no producción. Estado del documento: \texttt{state: draft |
+engine-generated}, pendiente de revisión y aprobación humana con nombre.
+
+\end{document}

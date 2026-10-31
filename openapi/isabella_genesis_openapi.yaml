@@ -1,0 +1,188 @@
+# state: draft | engine-generated — Contrato abierto de los 5 skills fundacionales Ω∞ GENESIS.
+# Este OpenAPI describe la SUPERFICIE GOBERNADA de invocación de los skills ORION/SOPHIA/
+# ARGUS/MNEMOS/LUMEN tal como la modela `src/skills/foundational.ts` y la valida contra deriva
+# `src/omega/genesis/spec-contract.ts`. NO declara endpoints en producción: el inventario de
+# rutas está CONGELADO y toda invocación real exige CROWN + allowlist + (si aplica) aprobación
+# humana. Un contrato verde es una capacidad documentada, NO una afirmación de ejecución
+# verificada (AGENTS.md §1). Los operationId coinciden EXACTAMENTE con `operationIdFor(slug)`.
+openapi: 3.1.0
+info:
+  title: Isabella Villaseñor AI — Ω∞ GENESIS Foundational Skills
+  version: 1.0.0
+  description: >-
+    Superficie gobernada de los cinco skills fundacionales de la capa GENESIS Ω∞.
+    Cada operación SUGIERE, CALCULA y EVALÚA sobre una facultad real existente; nunca
+    autoriza ni ejecuta un efecto gobernado: CROWN autoriza, HyperCore ejecuta, BookPI evidencia.
+  x-maturity: draft
+  x-engine-generated: true
+servers:
+  - url: /omega/genesis
+    description: Prefijo lógico de la capa Genesis (no un host de producción).
+security:
+  - crownScope: []
+paths:
+  /skills/orion/invoke:
+    post:
+      operationId: invokeGenesisOrion
+      summary: ORION — provenance orientation
+      description: Envuelve `src/memory/provenance`; valida afirmaciones contra fuentes conocidas.
+      riskTier: MEDIUM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sources, claim]
+              properties:
+                sources:
+                  type: array
+                  minItems: 1
+                  items: { type: object }
+                claim: { type: object }
+      responses:
+        '200':
+          description: Resultado evaluado (capacidad, no autoridad).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [valid, claimId, sourceCount, sourceDigest]
+                properties:
+                  valid: { type: boolean }
+                  claimId: { type: string }
+                  sourceCount: { type: integer, minimum: 0 }
+                  sourceDigest: { type: string, pattern: '^[0-9a-f]{64}$' }
+  /skills/sophia/invoke:
+    post:
+      operationId: invokeGenesisSophia
+      summary: SOPHIA — knowledge confidence consolidation
+      description: Consolida confianza a partir de las fuentes de procedencia de la afirmación.
+      riskTier: MEDIUM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sources, claim]
+              properties:
+                sources: { type: array, minItems: 1, items: { type: object } }
+                claim: { type: object }
+      responses:
+        '200':
+          description: Confianza consolidada (capacidad, no verdad declarada).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [confidence, valid, digest]
+                properties:
+                  confidence: { type: string }
+                  valid: { type: boolean }
+                  digest: { type: string, pattern: '^[0-9a-f]{64}$' }
+  /skills/argus/invoke:
+    post:
+      operationId: invokeGenesisArgus
+      summary: ARGUS — multi-verifier consensus
+      description: Envuelve `src/hypercore/veritas-omega`; derivación de chequeos y veredicto.
+      riskTier: MEDIUM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [risk, candidate]
+              properties:
+                risk: { type: string }
+                candidate: { type: object }
+      responses:
+        '200':
+          description: Consenso de verificadores (capacidad, no aprobación).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verdict, approvals, required, reason]
+                properties:
+                  verdict: { type: string }
+                  approvals: { type: integer, minimum: 0 }
+                  required: { type: integer, minimum: 0 }
+                  reason: { type: string }
+  /skills/mnemos/invoke:
+    post:
+      operationId: invokeGenesisMnemos
+      summary: MNEMOS — deterministic memory seal
+      description: Sella determinista (SHA-256) de un registro; la persistencia real es capa aparte.
+      riskTier: MEDIUM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [record]
+              properties:
+                record: { type: object }
+      responses:
+        '200':
+          description: Sello computado (capacidad, no durabilidad garantizada).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sealed, digest, sealedAt]
+                properties:
+                  sealed: { const: true }
+                  digest: { type: string, pattern: '^[0-9a-f]{64}$' }
+                  sealedAt: { type: string, format: date-time }
+  /skills/lumen/invoke:
+    post:
+      operationId: invokeGenesisLumen
+      summary: LUMEN — authority illumination
+      description: Envuelve `src/skills/crown-policy`; illumina el veredicto de política CROWN.
+      riskTier: LOW
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                [requiredScopes, grantedScopes, riskTier, approvalProvided, callsThisWindow, maxCallsPerMinute]
+              properties:
+                requiredScopes: { type: array, items: { type: string } }
+                grantedScopes: { type: array, items: { type: string } }
+                riskTier: { type: string }
+                approvalProvided: { type: boolean }
+                callsThisWindow: { type: integer, minimum: 0 }
+                maxCallsPerMinute: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Veredicto de iluminación de autoridad (sugerencia, no decisión ejecutiva).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verdict, reason, missingScopes]
+                properties:
+                  verdict: { type: string }
+                  reason: { type: string }
+                  missingScopes: { type: array, items: { type: string } }
+components:
+  securitySchemes:
+    crownScope:
+      type: oauth2
+      description: >-
+        Escopes gobernados por CROWN. La obtención de un scope NO equivale a autoridad
+        ejecutiva: la decisión la toma la Constitución + un humano cuando el riesgo lo exige.
+      flows:
+        clientCredentials:
+          tokenUrl: /omega/genesis/token
+          scopes:
+            cognition:provenance:orient: ORION
+            cognition:knowledge:consolidate: SOPHIA
+            cognition:verification:consensus: ARGUS
+            'memory:seal': MNEMOS
+            'authority:illuminate': LUMEN

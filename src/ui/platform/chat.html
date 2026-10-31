@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070c13" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="robots" content="index,follow" />
+  <meta name="description" content="Sala de cognición de Isabella Villaseñor AI: conversación gobernada, entrega progresiva y telemetría honesta del nodo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Isabella · Sala de cognición" />
+  <meta property="og:description" content="Chat público con trazabilidad de motor, latencia y límites. Sesiones guardadas solo en este navegador." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%239ff7ff'/%3E%3Cstop offset='.55' stop-color='%23c9b8ff'/%3E%3Cstop offset='1' stop-color='%23a9f5d0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%23070c13'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='url(%23g)' stroke-width='2'/%3E%3Ctext x='32' y='40' text-anchor='middle' font-family='Georgia,serif' font-size='22' fill='url(%23g)'%3EIS%3C/text%3E%3C/svg%3E" />
+  <link rel="preload" as="style" href="/styles/platform.css?v=dev" />
+  <link rel="stylesheet" href="/styles/platform.css?v=dev" />
+  <title>Sala de cognición · Isabella Villaseñor AI</title>
+</head>
+<body class="chat-app">
+  <a class="skip-link" href="#chatMessages">Saltar a la conversación</a>
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient-grid"></span>
+    <span class="ambient-glow ambient-glow-a"></span>
+    <span class="ambient-glow ambient-glow-b"></span>
+    <span class="ambient-scan"></span>
+  </div>
+
+  <div class="chat-shell">
+    <aside class="chat-sidebar" id="chatSidebar" aria-label="Conversaciones locales">
+      <div class="chat-sidebar-head">
+        <a class="chat-brand" href="/platform" aria-label="Isabella Genesis, volver a la plataforma">
+          <span class="brand-mark" aria-hidden="true"><i></i><b>IS</b></span>
+          <span class="brand-copy"><strong>ISABELLA</strong><small>GENESIS / V6</small></span>
+          <span class="chat-brand-note">CHAT</span>
+        </a>
+        <button class="chat-new" id="newChatButton" type="button"><span aria-hidden="true">＋</span> Nueva conversación</button>
+        <label class="chat-search">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">Buscar en el historial local</span>
+          <input id="sessionSearch" type="search" placeholder="Buscar en este navegador…" autocomplete="off" spellcheck="false" />
+        </label>
+      </div>
+
+      <div class="chat-sessions">
+        <div class="chat-sessions-label"><span>HISTORIAL LOCAL</span><span id="sessionCount">00</span></div>
+        <div class="session-list" id="sessionList" role="list"></div>
+        <div class="session-empty" id="sessionEmpty">Aún no hay conversaciones guardadas. La primera se creará en este navegador cuando envíes un mensaje.</div>
+      </div>
+
+      <div class="chat-sidebar-foot">
+        <div class="tamv-signature">
+          <img src="/ui/platform/logo-isav6.jpeg" alt="Logotipo oficial de Isabella Villaseñor AI" />
+          <div><strong>TAMV ONLINE</strong><span>Orgullosamente Latinoamericanos</span><small>Real del Monte, Hidalgo, México</small></div>
+        </div>
+        <p>LOCAL-FIRST · SIN CUENTA REMOTA<br />SESIÓN PÚBLICA / VIEWER</p>
+        <a href="/platform/settings">Ajustes del espacio</a>
+        <a href="/platform/governance">Gobernanza y evidencia</a>
+      </div>
+    </aside>
+
+    <main class="chat-main" id="chatMain">
+      <header class="chat-topbar">
+        <button class="chat-icon-button chat-menu" id="menuToggle" type="button" aria-label="Abrir historial" aria-controls="chatSidebar" aria-expanded="false">≡</button>
+        <div class="chat-title-block">
+          <strong id="chatTitle">Nueva conversación</strong>
+          <small id="chatSubtitle">SESIÓN LOCAL · SIN CUENTA REMOTA</small>
+        </div>
+        <div class="chat-topbar-spacer"></div>
+        <span class="chat-engine-badge" id="engineBadge"><i aria-hidden="true"></i><span id="engineBadgeText">AUTO · VERIFICANDO</span></span>
+      </header>
+
+      <div class="chat-thread" id="chatThread">
+        <div class="chat-thread-inner">
+          <section class="chat-welcome" id="chatWelcome" aria-labelledby="welcomeTitle">
+            <img class="welcome-logo" src="/ui/platform/logo-isav6.jpeg" alt="Isabella Villaseñor AI" />
+            <p class="eyebrow">SALA DE COGNICIÓN · NODO CERO</p>
+            <h1 id="welcomeTitle">Inteligencia con <em>trazabilidad</em>, no con promesas.</h1>
+            <p>Conversa con la capa pública de Isabella. Cada respuesta declara su motor, su latencia y sus límites. Las sesiones viven en este navegador; la conversación no se presenta como memoria canónica ni como acceso a sistemas privados.</p>
+
+          </section>
+
+          <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+        </div>
+      </div>
+
+      <div class="chat-composer-zone">
+        <form class="chat-composer" id="composerForm" novalidate>
+          <div class="composer-attachments" id="attachmentList" hidden></div>
+          <label class="sr-only" for="composerInput">Mensaje para Isabella</label>
+          <textarea id="composerInput" rows="1" maxlength="20000" placeholder="Formula una pregunta, una tarea local o una solicitud de análisis…" aria-describedby="composerNote" autocomplete="off"></textarea>
+          <div class="composer-toolbar">
+            <label class="composer-select" title="Motor de respuesta">
+              <span class="sr-only">Motor de respuesta</span>
+              <select id="engineSelect">
+                <option value="auto">MOTOR AUTO</option>
+                <option value="sovereign">SOBERANO</option>
+              </select>
+            </label>
+            <label class="composer-select" title="Lente de análisis">
+              <span class="sr-only">Lente de an��lisis</span>
+              <select id="lensSelect">
+                <option value="general">LENTE GENERAL</option>
+                <option value="territorial">TERRITORIAL</option>
+                <option value="epistemic">EPISTÉMICO</option>
+                <option value="security">SEGURIDAD</option>
+                <option value="governance">GOBERNANZA</option>
+              </select>
+            </label>
+            <span class="composer-spacer"></span>
+            <button class="send-button" id="sendButton" type="submit" aria-label="Enviar mensaje">↑</button>
+          </div>
+        </form>
+        <p class="composer-note" id="composerNote">Enter envía · Shift+Enter agrega una línea · Máximo 20 000 caracteres. La sesión se guarda solo en este navegador. Una respuesta pública no concede autoridad ni ejecuta acciones privilegiadas.</p>
+        <input type="file" id="fileInput" multiple accept=".txt,.md,.json,.csv,.log,.ts,.js,.css,.html,.xml,.yaml,.yml" hidden />
+      </div>
+    </main>
+
+    <aside class="chat-inspector" id="chatInspector" hidden aria-label="Contexto de la sesión">
+      <div class="inspector-head">
+        <strong>CONTEXTO DE SESIÓN</strong>
+        <button class="chat-icon-button inspector-close" id="inspectorClose" type="button" aria-label="Cerrar panel de contexto">×</button>
+      </div>
+      <div class="inspector-body">
+        <section class="inspector-section">
+          <h3>RUTA <b id="inspectorEngine">—</b></h3>
+          <dl class="inspector-kv">
+            <div><dt>Intención</dt><dd id="inspectorIntent">—</dd></div>
+            <div><dt>Latencia</dt><dd id="inspectorLatency">—</dd></div>
+            <div><dt>Turboboost</dt><dd id="inspectorTurbo">—</dd></div>
+            <div><dt>Fragmentos</dt><dd id="inspectorChunks">—</dd></div>
+            <div><dt>Autoridad</dt><dd>VIEWER</dd></div>
+          </dl>
+        </section>
+        <section class="inspector-section">
+          <h3>Ω∞ RUNTIME <b id="inspectorOmegaState">—</b></h3>
+          <dl class="inspector-kv">
+            <div><dt>Estrategia</dt><dd id="inspectorOmegaStrategy">—</dd></div>
+            <div><dt>Intención</dt><dd id="inspectorOmegaIntent">—</dd></div>
+            <div><dt>Contexto</dt><dd id="inspectorOmegaContext">—</dd></div>
+            <div><dt>Calidad</dt><dd id="inspectorOmegaQuality">—</dd></div>
+            <div><dt>Reflexión</dt><dd id="inspectorOmegaReflection">—</dd></div>
+            <div><dt>Gobernanza</dt><dd id="inspectorOmegaGovernance">—</dd></div>
+            <div><dt>Presupuesto</dt><dd id="inspectorOmegaBudget">—</dd></div>
+            <div><dt>Autoridad</dt><dd>NONE · SIN EJECUCIÓN</dd></div>
+          </dl>
+          <p class="inspector-note">Traza local del runtime Ω∞. No concede autoridad ni prueba ejecución externa.</p>
+        </section>
+        <section class="inspector-section">
+          <h3>NODO</h3>
+          <dl class="inspector-kv">
+            <div><dt>Estado</dt><dd id="inspectorNode">—</dd></div>
+            <div><dt>Caché</dt><dd id="inspectorCache">—</dd></div>
+            <div><dt>Gate</dt><dd id="inspectorGate">—</dd></div>
+            <div><dt>Agente local</dt><dd id="inspectorAgent">—</dd></div>
+          </dl>
+          <div class="inspector-actions">
+            <button id="inspectorRefresh" type="button">ACTUALIZAR</button>
+            <a href="/platform/status">ESTADO</a>
+          </div>
+        </section>
+        <section class="inspector-section">
+          <h3>SESIÓN</h3>
+          <dl class="inspector-kv">
+            <div><dt>Mensajes</dt><dd id="inspectorTurns">0</dd></div>
+            <div><dt>Motor</dt><dd id="inspectorMode">AUTO</dd></div>
+            <div><dt>Lente</dt><dd id="inspectorLens">GENERAL</dd></div>
+            <div><dt>Entrega</dt><dd id="inspectorDelivery">SSE</dd></div>
+          </dl>
+          <div class="inspector-actions">
+            <button id="clearSessionButton" type="button">LIMPIAR SESIÓN</button>
+            <button id="exportInspectorButton" type="button">EXPORTAR MD</button>
+          </div>
+        </section>
+        <section class="inspector-section">
+          <h3>PRIVACIDAD</h3>
+          <p class="inspector-empty">El historial y los adjuntos permanecen en localStorage. No hay autenticación remota, memoria personal ni indexación de archivos en esta superficie.</p>
+          <p class="inspector-note">La telemetría del nodo describe este proceso. No es un SLA ni prueba de capacidad de producción.</p>
+        </section>
+        <section class="inspector-section">
+          <h3>SUPERFICIES</h3>
+          <div class="inspector-actions">
+            <a href="/platform/skills">SKILLS</a>
+            <a href="/platform/tools">TOOLS</a>
+            <a href="/platform/docs">DOCS</a>
+            <a href="/platform/pricing">PLANES</a>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div class="chat-overlay" id="chatOverlay" aria-hidden="true"></div>
+  <div class="chat-toast" id="chatToast" role="status" aria-live="polite"></div>
+  <script src="/ui/cognition-client.js?v=dev" defer></script>
+  <script src="/ui/platform-chat.js?v=dev" defer></script>
+</body>
+</html>

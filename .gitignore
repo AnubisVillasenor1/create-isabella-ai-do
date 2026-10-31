@@ -1,16 +1,31 @@
-# v0 sandbox internal files
-__v0_runtime_loader.js
-__v0_devtools.tsx
-__v0_jsx-dev-runtime.ts
-.snowflake/
-.design-cache/
-.v0-trash/
-.vercel/
-
-# Environment variables
-.env*.local
-
-# Common ignores
-node_modules
-.next/
+node_modules/
+dist/
+coverage/
+package-lock.json
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
 .DS_Store
+data/
+.data/
+*.jsonl
+!fixtures/**/*.jsonl
+evidence/*.json
+artifacts/
+firebase-applet-config.json
+.vercel
+
+# Generated Netlify publish media
+netlify/public/assets/
+
+# Perfiles de Chrome creados por las verificaciones headless (CDP): son basura de
+# entorno, no entradas versionables.
+.chrome-headless-profile*/
+
+.vercel
+
+# Configuración local del editor (extensiones recomendadas, preferencias por máquina):
+# versionarla impondría a todo clonador una extensión de terceros.
+.vscode/

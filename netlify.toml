@@ -1,0 +1,21 @@
+# state: draft | engine-generated
+[build]
+  command = "corepack pnpm run build && node scripts/prepare-netlify.mjs"
+  publish = "netlify/public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["src/ui/**"]
+
+[dev]
+  command = "corepack pnpm dev"
+  targetPort = 8080
+  port = 8889
+  framework = "custom"
+
+[[headers]]
+  for = "/assets/video/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "public, max-age=86400"
